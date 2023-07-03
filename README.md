@@ -1,2 +1,2 @@
 # rustdesk-sever-pro
-Some scripts for RustDesk Server Pro are host here.
+Some scripts for RustDesk Server Pro are hosted here.
