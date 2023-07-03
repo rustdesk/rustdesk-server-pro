@@ -75,6 +75,7 @@ else
 fi
 
 cd /opt/rustdesk/
+rm -rf static/
 
 echo "Upgrading Rustdesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
