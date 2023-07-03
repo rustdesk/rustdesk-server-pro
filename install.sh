@@ -110,14 +110,20 @@ if [ "${ARCH}" = "x86_64" ] ; then
 wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/1.1.8/rustdesk-server-linux-amd64.zip
 unzip rustdesk-server-linux-amd64.zip
 mv amd64/* /opt/rustdesk/
+rm -rf amd64/
+rm -rf rustdesk-server-linux-amd64.zip
 elif [ "${ARCH}" = "armv7l" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.zip"
 unzip rustdesk-server-linux-armv7.zip
 mv armv7/* /opt/rustdesk/
+rm -rf armv7/
+rm -rf rustdesk-server-linux-armv7.zip
 elif [ "${ARCH}" = "aarch64" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.zip"
 unzip rustdesk-server-linux-arm64v8.zip
 mv arm64v8/* /opt/rustdesk/
+rm -rf arm64v8/
+rm -rf rustdesk-server-linux-arm64v8.zip
 fi
 
 chmod +x /opt/rustdesk/hbbs
