@@ -259,8 +259,8 @@ EOF
 )"
 echo "${rustdesknginx}" | sudo tee /etc/nginx/sites-available/rustdesk.conf >/dev/null
 
-rm /etc/nginx/sites-available/default
-rm /etc/nginx/sites-enabled/default
+sudo rm /etc/nginx/sites-available/default
+sudo rm /etc/nginx/sites-enabled/default
 
 sudo ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rustdesk.conf 
 
