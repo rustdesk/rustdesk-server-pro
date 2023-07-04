@@ -5,7 +5,7 @@ uname=$(whoami) # not used btw .. yet
 
 # Get current release version
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }' | sed 's/-.*//')
-RDCURRENT=$(/var/lib/rustdesk-server/hbbr --version | sed -r 's/hbbr (.*)-.*/\1/')
+RDCURRENT=$(/usr/bin/rustdesk-server/hbbr --version | sed -r 's/hbbr (.*)-.*/\1/')
 
 if [ $RDLATEST == $RDCURRENT ]; then
     echo "Same version no need to update."
@@ -67,8 +67,8 @@ if [ "$DEBUG" = "true" ]; then
 fi
 
 
-if ! [ -e /opt/rustdesk  ]; then
-        echo "No directory /opt/rustdesk found. No update of rustdesk possible (used install.sh script ?) "
+if ! [ -e /var/lib/rustdesk-server/  ]; then
+        echo "No directory /var/lib/rustdesk-server/ found. No update of rustdesk possible (use install.sh script ?) "
         exit 4
 else
         :
@@ -81,25 +81,31 @@ echo "Upgrading Rustdesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
 wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/1.1.8/rustdesk-server-linux-amd64.zip
 unzip rustdesk-server-linux-amd64.zip
-mv amd64/* /var/lib/rustdesk-server/
+mv amd64/static /var/lib/rustdesk-server/
+mv amd64/hbbr /usr/bin/
+mv amd64/hbbs /usr/bin/
 rm -rf amd64/
 rm -rf rustdesk-server-linux-amd64.zip
 elif [ "${ARCH}" = "armv7l" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.zip"
 unzip rustdesk-server-linux-armv7.zip
-mv armv7/* /var/lib/rustdesk-server/
+mv armv7/static /var/lib/rustdesk-server/
+mv armv7/hbbr /usr/bin/
+mv armv7/hbbs /usr/bin/
 rm -rf armv7/
 rm -rf rustdesk-server-linux-armv7.zip
 elif [ "${ARCH}" = "aarch64" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.zip"
 unzip rustdesk-server-linux-arm64v8.zip
-mv arm64v8/* /var/lib/rustdesk-server/
+mv arm64v8/static /var/lib/rustdesk-server/
+mv arm64v8/hbbr /usr/bin/
+mv arm64v8/hbbs /usr/bin/
 rm -rf arm64v8/
 rm -rf rustdesk-server-linux-arm64v8.zip
 fi
 
-chmod +x /var/lib/rustdesk-server/hbbs
-chmod +x /var/lib/rustdesk-server/hbbr
+chmod +x /usr/bin/hbbs
+chmod +x /usr/bin/hbbr
 
 sudo systemctl start rustdesk-hbbs.service
 sudo systemctl start rustdesk-hbbr.service
