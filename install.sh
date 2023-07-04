@@ -106,6 +106,7 @@ if [ ! -d "/var/lib/rustdesk-server" ]; then
     echo "Creating /var/lib/rustdesk-server"
     sudo mkdir -p /var/lib/rustdesk-server/
 fi
+
 sudo chown "${uname}" -R /var/lib/rustdesk-server
 cd /var/lib/rustdesk-server/ || exit 1
 
@@ -117,25 +118,31 @@ echo "Installing Rustdesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
 wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/1.1.8/rustdesk-server-linux-amd64.zip
 unzip rustdesk-server-linux-amd64.zip
-mv amd64/* /var/lib/rustdesk-server/
+mv amd64/static /var/lib/rustdesk-server/
+mv amd64/hbbr /usr/bin/
+mv amd64/hbbs /usr/bin/
 rm -rf amd64/
 rm -rf rustdesk-server-linux-amd64.zip
 elif [ "${ARCH}" = "armv7l" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.zip"
 unzip rustdesk-server-linux-armv7.zip
-mv armv7/* /var/lib/rustdesk-server/
+mv armv7/static /var/lib/rustdesk-server/
+mv armv7/hbbr /usr/bin/
+mv armv7/hbbs /usr/bin/
 rm -rf armv7/
 rm -rf rustdesk-server-linux-armv7.zip
 elif [ "${ARCH}" = "aarch64" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.zip"
 unzip rustdesk-server-linux-arm64v8.zip
-mv arm64v8/* /var/lib/rustdesk-server/
+mv arm64v8/static /var/lib/rustdesk-server/
+mv arm64v8/hbbr /usr/bin/
+mv arm64v8/hbbs /usr/bin/
 rm -rf arm64v8/
 rm -rf rustdesk-server-linux-arm64v8.zip
 fi
 
-chmod +x /var/lib/rustdesk-server/hbbs
-chmod +x /var/lib/rustdesk-server/hbbr
+chmod +x /usr/bin/hbbs
+chmod +x /usr/bin/hbbr
 
 
 # Make Folder /var/log/rustdesk/
@@ -146,57 +153,57 @@ fi
 sudo chown "${uname}" -R /var/log/rustdesk/
 
 # Setup Systemd to launch hbbs
-rustdesk-hbbs="$(cat << EOF
+rustdeskhbbs="$(cat << EOF
 [Unit]
 Description=Rustdesk Signal Server
 [Service]
 Type=simple
 LimitNOFILE=1000000
-ExecStart=/var/lib/rustdesk-server/hbbs
+ExecStart=/usr/bin/hbbs
 WorkingDirectory=/var/lib/rustdesk-server/
 User=${uname}
 Group=${uname}
 Restart=always
-StandardOutput=append:/var/log/rustdesk/rustdesk-hbbs.log
-StandardError=append:/var/log/rustdesk/rustdesk-hbbs.error
+StandardOutput=append:/var/log/rustdesk/rustdeskhbbs.log
+StandardError=append:/var/log/rustdesk/rustdeskhbbs.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
 )"
-echo "${rustdesk-hbbs}" | sudo tee /etc/systemd/system/rustdesk-hbbs.service > /dev/null
+echo "${rustdeskhbbs}" | sudo tee /etc/systemd/system/rustdeskhbbs.service > /dev/null
 sudo systemctl daemon-reload
-sudo systemctl enable rustdesk-hbbs.service
-sudo systemctl start rustdesk-hbbs.service
+sudo systemctl enable rustdeskhbbs.service
+sudo systemctl start rustdeskhbbs.service
 
 # Setup Systemd to launch hbbr
-rustdesk-hbbr="$(cat << EOF
+rustdeskhbbr="$(cat << EOF
 [Unit]
 Description=Rustdesk Relay Server
 [Service]
 Type=simple
 LimitNOFILE=1000000
-ExecStart=/var/lib/rustdesk-server/hbbr
+ExecStart=/usr/bin/hbbr
 WorkingDirectory=/var/lib/rustdesk-server/
 User=${uname}
 Group=${uname}
 Restart=always
-StandardOutput=append:/var/log/rustdesk/rustdesk-hbbr.log
-StandardError=append:/var/log/rustdesk/rustdesk-hbbr.error
+StandardOutput=append:/var/log/rustdesk/rustdeskhbbr.log
+StandardError=append:/var/log/rustdesk/rustdeskhbbr.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
 )"
-echo "${rustdesk-hbbr}" | sudo tee /etc/systemd/system/rustdesk-hbbr.service > /dev/null
+echo "${rustdeskhbbr}" | sudo tee /etc/systemd/system/rustdeskhbbr.service > /dev/null
 sudo systemctl daemon-reload
-sudo systemctl enable rustdesk-hbbr.service
-sudo systemctl start rustdesk-hbbr.service
+sudo systemctl enable rustdeskhbbr.service
+sudo systemctl start rustdeskhbbr.service
 
 while ! [[ $CHECK_RUSTDESK_READY ]]; do
-  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdesk-hbbr.service | grep "Active: active (running)")
+  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdeskhbbr.service | grep "Active: active (running)")
   echo -ne "Rustdesk Relay not ready yet...${NC}\n"
   sleep 3
 done
