@@ -5,15 +5,15 @@ uname=$(whoami) # not used btw .. yet
 
 # Get current release version
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }' | sed 's/-.*//')
-RDCURRENT=$(/opt/rustdesk/hbbr --version | sed -r 's/hbbr (.*)-.*/\1/')
+RDCURRENT=$(/var/lib/rustdesk-server/hbbr --version | sed -r 's/hbbr (.*)-.*/\1/')
 
 if [ $RDLATEST == $RDCURRENT ]; then
     echo "Same version no need to update."
     exit 0
 fi
 
-sudo systemctl stop rustdesksignal.service
-sudo systemctl stop rustdeskrelay.service
+sudo systemctl stop rustdesk-hbbs.service
+sudo systemctl stop rustdesk-hbbr.service
 sleep 20
 
 ARCH=$(uname -m)
@@ -74,38 +74,38 @@ else
         :
 fi
 
-cd /opt/rustdesk/
+cd /var/lib/rustdesk-server/
 rm -rf static/
 
 echo "Upgrading Rustdesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
 wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/1.1.8/rustdesk-server-linux-amd64.zip
 unzip rustdesk-server-linux-amd64.zip
-mv amd64/* /opt/rustdesk/
+mv amd64/* /var/lib/rustdesk-server/
 rm -rf amd64/
 rm -rf rustdesk-server-linux-amd64.zip
 elif [ "${ARCH}" = "armv7l" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.zip"
 unzip rustdesk-server-linux-armv7.zip
-mv armv7/* /opt/rustdesk/
+mv armv7/* /var/lib/rustdesk-server/
 rm -rf armv7/
 rm -rf rustdesk-server-linux-armv7.zip
 elif [ "${ARCH}" = "aarch64" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.zip"
 unzip rustdesk-server-linux-arm64v8.zip
-mv arm64v8/* /opt/rustdesk/
+mv arm64v8/* /var/lib/rustdesk-server/
 rm -rf arm64v8/
 rm -rf rustdesk-server-linux-arm64v8.zip
 fi
 
-chmod +x /opt/rustdesk/hbbs
-chmod +x /opt/rustdesk/hbbr
+chmod +x /var/lib/rustdesk-server/hbbs
+chmod +x /var/lib/rustdesk-server/hbbr
 
-sudo systemctl start rustdesksignal.service
-sudo systemctl start rustdeskrelay.service
+sudo systemctl start rustdesk-hbbs.service
+sudo systemctl start rustdesk-hbbr.service
 
 while ! [[ $CHECK_RUSTDESK_READY ]]; do
-  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdeskrelay.service | grep "Active: active (running)")
+  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdesk-hbbr.service | grep "Active: active (running)")
   echo -ne "Rustdesk Relay not ready yet...${NC}\n"
   sleep 3
 done
