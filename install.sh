@@ -119,30 +119,30 @@ if [ "${ARCH}" = "x86_64" ] ; then
 wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/1.1.8/rustdesk-server-linux-amd64.zip
 unzip rustdesk-server-linux-amd64.zip
 mv amd64/static /var/lib/rustdesk-server/
-mv amd64/hbbr /usr/bin/
-mv amd64/hbbs /usr/bin/
+sudo mv amd64/hbbr /usr/bin/
+sudo mv amd64/hbbs /usr/bin/
 rm -rf amd64/
 rm -rf rustdesk-server-linux-amd64.zip
 elif [ "${ARCH}" = "armv7l" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.zip"
 unzip rustdesk-server-linux-armv7.zip
 mv armv7/static /var/lib/rustdesk-server/
-mv armv7/hbbr /usr/bin/
-mv armv7/hbbs /usr/bin/
+sudo mv armv7/hbbr /usr/bin/
+sudo mv armv7/hbbs /usr/bin/
 rm -rf armv7/
 rm -rf rustdesk-server-linux-armv7.zip
 elif [ "${ARCH}" = "aarch64" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.zip"
 unzip rustdesk-server-linux-arm64v8.zip
 mv arm64v8/static /var/lib/rustdesk-server/
-mv arm64v8/hbbr /usr/bin/
-mv arm64v8/hbbs /usr/bin/
+sudo mv arm64v8/hbbr /usr/bin/
+sudo mv arm64v8/hbbs /usr/bin/
 rm -rf arm64v8/
 rm -rf rustdesk-server-linux-arm64v8.zip
 fi
 
-chmod +x /usr/bin/hbbs
-chmod +x /usr/bin/hbbr
+sudo chmod +x /usr/bin/hbbs
+sudo chmod +x /usr/bin/hbbr
 
 
 # Make Folder /var/log/rustdesk/
