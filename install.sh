@@ -93,13 +93,13 @@ ufw allow 22/tcp
 ufw allow 21116/udp
 sudo ufw enable
 
-# Make Folder /opt/rustdesk/
-if [ ! -d "/opt/rustdesk" ]; then
-    echo "Creating /opt/rustdesk"
-    sudo mkdir -p /opt/rustdesk/
+# Make Folder /var/lib/rustdesk-server/
+if [ ! -d "/var/lib/rustdesk-server" ]; then
+    echo "Creating /var/lib/rustdesk-server"
+    sudo mkdir -p /var/lib/rustdesk-server/
 fi
-sudo chown "${uname}" -R /opt/rustdesk
-cd /opt/rustdesk/ || exit 1
+sudo chown "${uname}" -R /var/lib/rustdesk-server
+cd /var/lib/rustdesk-server/ || exit 1
 
 
 #Download latest version of Rustdesk
@@ -109,25 +109,25 @@ echo "Installing Rustdesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
 wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/1.1.8/rustdesk-server-linux-amd64.zip
 unzip rustdesk-server-linux-amd64.zip
-mv amd64/* /opt/rustdesk/
+mv amd64/* /var/lib/rustdesk-server/
 rm -rf amd64/
 rm -rf rustdesk-server-linux-amd64.zip
 elif [ "${ARCH}" = "armv7l" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.zip"
 unzip rustdesk-server-linux-armv7.zip
-mv armv7/* /opt/rustdesk/
+mv armv7/* /var/lib/rustdesk-server/
 rm -rf armv7/
 rm -rf rustdesk-server-linux-armv7.zip
 elif [ "${ARCH}" = "aarch64" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.zip"
 unzip rustdesk-server-linux-arm64v8.zip
-mv arm64v8/* /opt/rustdesk/
+mv arm64v8/* /var/lib/rustdesk-server/
 rm -rf arm64v8/
 rm -rf rustdesk-server-linux-arm64v8.zip
 fi
 
-chmod +x /opt/rustdesk/hbbs
-chmod +x /opt/rustdesk/hbbr
+chmod +x /var/lib/rustdesk-server/hbbs
+chmod +x /var/lib/rustdesk-server/hbbr
 
 
 # Make Folder /var/log/rustdesk/
@@ -138,62 +138,62 @@ fi
 sudo chown "${uname}" -R /var/log/rustdesk/
 
 # Setup Systemd to launch hbbs
-rustdesksignal="$(cat << EOF
+rustdesk-hbbs="$(cat << EOF
 [Unit]
 Description=Rustdesk Signal Server
 [Service]
 Type=simple
 LimitNOFILE=1000000
-ExecStart=/opt/rustdesk/hbbs
-WorkingDirectory=/opt/rustdesk/
+ExecStart=/var/lib/rustdesk-server/hbbs
+WorkingDirectory=/var/lib/rustdesk-server/
 User=${uname}
 Group=${uname}
 Restart=always
-StandardOutput=append:/var/log/rustdesk/signalserver.log
-StandardError=append:/var/log/rustdesk/signalserver.error
+StandardOutput=append:/var/log/rustdesk/rustdesk-hbbs.log
+StandardError=append:/var/log/rustdesk/rustdesk-hbbs.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
 )"
-echo "${rustdesksignal}" | sudo tee /etc/systemd/system/rustdesksignal.service > /dev/null
+echo "${rustdesk-hbbs}" | sudo tee /etc/systemd/system/rustdesk-hbbs.service > /dev/null
 sudo systemctl daemon-reload
-sudo systemctl enable rustdesksignal.service
-sudo systemctl start rustdesksignal.service
+sudo systemctl enable rustdesk-hbbs.service
+sudo systemctl start rustdesk-hbbs.service
 
 # Setup Systemd to launch hbbr
-rustdeskrelay="$(cat << EOF
+rustdesk-hbbr="$(cat << EOF
 [Unit]
 Description=Rustdesk Relay Server
 [Service]
 Type=simple
 LimitNOFILE=1000000
-ExecStart=/opt/rustdesk/hbbr
-WorkingDirectory=/opt/rustdesk/
+ExecStart=/var/lib/rustdesk-server/hbbr
+WorkingDirectory=/var/lib/rustdesk-server/
 User=${uname}
 Group=${uname}
 Restart=always
-StandardOutput=append:/var/log/rustdesk/relayserver.log
-StandardError=append:/var/log/rustdesk/relayserver.error
+StandardOutput=append:/var/log/rustdesk/rustdesk-hbbr.log
+StandardError=append:/var/log/rustdesk/rustdesk-hbbr.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
 )"
-echo "${rustdeskrelay}" | sudo tee /etc/systemd/system/rustdeskrelay.service > /dev/null
+echo "${rustdesk-hbbr}" | sudo tee /etc/systemd/system/rustdesk-hbbr.service > /dev/null
 sudo systemctl daemon-reload
-sudo systemctl enable rustdeskrelay.service
-sudo systemctl start rustdeskrelay.service
+sudo systemctl enable rustdesk-hbbr.service
+sudo systemctl start rustdesk-hbbr.service
 
 while ! [[ $CHECK_RUSTDESK_READY ]]; do
-  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdeskrelay.service | grep "Active: active (running)")
+  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdesk-hbbr.service | grep "Active: active (running)")
   echo -ne "Rustdesk Relay not ready yet...${NC}\n"
   sleep 3
 done
 
-pubname=$(find /opt/rustdesk -name "*.pub")
+pubname=$(find /var/lib/rustdesk-server/ -name "*.pub")
 key=$(cat "${pubname}")
 
 echo "Tidying up install"
