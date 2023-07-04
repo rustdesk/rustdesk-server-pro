@@ -96,9 +96,9 @@ fi
 
 # Setting up firewall
 
-ufw allow 21115:21119/tcp
-ufw allow 22/tcp
-ufw allow 21116/udp
+sudo ufw allow 21115:21119/tcp
+sudo ufw allow 22/tcp
+sudo ufw allow 21116/udp
 sudo ufw enable
 
 # Make Folder /var/lib/rustdesk-server/
@@ -230,9 +230,9 @@ select WANOPT in "${WAN[@]}"; do
 case $WANOPT in
 "IP")
 wanip=$(dig @resolver4.opendns.com myip.opendns.com +short)
-ufw allow 21114/tcp
+sudo ufw allow 21114/tcp
 
-ufw enable && ufw reload
+sudo ufw enable && ufw reload
 break
 ;;
 
@@ -244,8 +244,8 @@ if ! [[ $wanip =~ ^[a-zA-Z0-9]+([a-zA-Z0-9.-]*[a-zA-Z0-9]+)?$ ]]; then
     echo -e "${RED}Invalid domain/dns address${NC}"
     exit 1
 fi
-apt -y install nginx
-apt -y install python3-certbot-nginx
+sudo apt -y install nginx
+sudo apt -y install python3-certbot-nginx
 
 rustdesknginx="$(
   cat <<EOF
@@ -264,12 +264,12 @@ rm /etc/nginx/sites-enabled/default
 
 sudo ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rustdesk.conf 
 
-ufw allow 80/tcp
-ufw allow 443/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
 
-ufw enable && ufw reload
+sudo ufw enable && ufw reload
 
-certbot --nginx -d ${wanip}
+sudo certbot --nginx -d ${wanip}
 
 break
 ;;
