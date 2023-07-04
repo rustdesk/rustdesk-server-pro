@@ -12,8 +12,8 @@ if [ $RDLATEST == $RDCURRENT ]; then
     exit 0
 fi
 
-sudo systemctl stop rustdesk-hbbs.service
-sudo systemctl stop rustdesk-hbbr.service
+sudo systemctl stop rustdeskhbbs.service
+sudo systemctl stop rustdeskhbbr.service
 sleep 20
 
 ARCH=$(uname -m)
@@ -107,11 +107,11 @@ fi
 sudo chmod +x /usr/bin/hbbs
 sudo chmod +x /usr/bin/hbbr
 
-sudo systemctl start rustdesk-hbbs.service
-sudo systemctl start rustdesk-hbbr.service
+sudo systemctl start rustdeskhbbs.service
+sudo systemctl start rustdeskhbbr.service
 
 while ! [[ $CHECK_RUSTDESK_READY ]]; do
-  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdesk-hbbr.service | grep "Active: active (running)")
+  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdeskhbbr.service | grep "Active: active (running)")
   echo -ne "Rustdesk Relay not ready yet...${NC}\n"
   sleep 3
 done
