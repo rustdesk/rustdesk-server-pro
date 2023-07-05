@@ -3,7 +3,7 @@
 # This script will do the following to install RustDesk Pro
 # 1. Install some dependencys
 # 2. Setup ufw firewall if available
-# 3. Create a Folder /var/lib/rustdesk-server
+# 3. Create 2 Folders /var/lib/rustdesk-server and /var/log/rustdesk-server
 # 4. Download and extract RustDesk Pro Services to the above folder
 # 5. Create systemd services for hbbs and hbbr
 # 6. If you chose Domain, it will install Nginx and certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, this will autorenew.
