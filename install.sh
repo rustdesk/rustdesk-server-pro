@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# This script will do the following to install RustDesk Pro
-# 1. Install some dependencys
+# This script will do the following to install RustDesk Server Pro
+# 1. Install some dependencies
 # 2. Setup ufw firewall if available
 # 3. Create 2 Folders /var/lib/rustdesk-server and /var/log/rustdesk-server
 # 4. Download and extract RustDesk Pro Services to the above folder
@@ -164,8 +164,8 @@ WorkingDirectory=/var/lib/rustdesk-server/
 User=${uname}
 Group=${uname}
 Restart=always
-StandardOutput=append:/var/log/rustdesk-server/rustdeskhbbs.log
-StandardError=append:/var/log/rustdesk-server/rustdeskhbbs.error
+StandardOutput=append:/var/log/rustdesk-server/hbbs.log
+StandardError=append:/var/log/rustdesk-server/hbbs.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
@@ -189,8 +189,8 @@ WorkingDirectory=/var/lib/rustdesk-server/
 User=${uname}
 Group=${uname}
 Restart=always
-StandardOutput=append:/var/log/rustdesk-server/rustdeskhbbr.log
-StandardError=append:/var/log/rustdesk-server/rustdeskhbbr.error
+StandardOutput=append:/var/log/rustdesk-server/hbbr.log
+StandardError=append:/var/log/rustdesk-server/hbbr.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
