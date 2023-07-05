@@ -188,10 +188,10 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 )"
-echo "${rustdeskhbbs}" | sudo tee /etc/systemd/system/rustdeskhbbs.service > /dev/null
+echo "${rustdeskhbbs}" | sudo tee /etc/systemd/system/rustdesk-hbbs.service > /dev/null
 sudo systemctl daemon-reload
-sudo systemctl enable rustdeskhbbs.service
-sudo systemctl start rustdeskhbbs.service
+sudo systemctl enable rustdesk-hbbs.service
+sudo systemctl start rustdesk-hbbs.service
 
 # Setup Systemd to launch hbbr
 rustdeskhbbr="$(cat << EOF
@@ -213,13 +213,13 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 )"
-echo "${rustdeskhbbr}" | sudo tee /etc/systemd/system/rustdeskhbbr.service > /dev/null
+echo "${rustdeskhbbr}" | sudo tee /etc/systemd/system/rustdesk-hbbr.service > /dev/null
 sudo systemctl daemon-reload
-sudo systemctl enable rustdeskhbbr.service
-sudo systemctl start rustdeskhbbr.service
+sudo systemctl enable rustdesk-hbbr.service
+sudo systemctl start rustdesk-hbbr.service
 
 while ! [[ $CHECK_RUSTDESK_READY ]]; do
-  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdeskhbbr.service | grep "Active: active (running)")
+  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdesk-hbbr.service | grep "Active: active (running)")
   echo -ne "Rustdesk Relay not ready yet...${NC}\n"
   sleep 3
 done
