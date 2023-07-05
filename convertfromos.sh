@@ -160,12 +160,13 @@ sudo chmod +x /usr/bin/hbbs
 sudo chmod +x /usr/bin/hbbr
 
 
-# Make Folder /var/log/rustdesk/
-if [ ! -d "/var/log/rustdesk" ]; then
-    echo "Creating /var/log/rustdesk"
-    sudo mkdir -p /var/log/rustdesk/
+# Make Folder /var/log/rustdesk-server/
+if [ ! -d "/var/log/rustdesk-server" ]; then
+    echo "Creating /var/log/rustdesk-server"
+    sudo mkdir -p /var/log/rustdesk-server/
 fi
-sudo chown "${uname}" -R /var/log/rustdesk/
+sudo chown "${uname}" -R /var/log/rustdesk-server/
+sudo rm -rf /var/log/rustdesk/
 
 # Setup Systemd to launch hbbs
 rustdeskhbbs="$(cat << EOF
@@ -179,8 +180,8 @@ WorkingDirectory=/var/lib/rustdesk-server/
 User=${uname}
 Group=${uname}
 Restart=always
-StandardOutput=append:/var/log/rustdesk/rustdeskhbbs.log
-StandardError=append:/var/log/rustdesk/rustdeskhbbs.error
+StandardOutput=append:/var/log/rustdesk-server/rustdeskhbbs.log
+StandardError=append:/var/log/rustdesk-server/rustdeskhbbs.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
@@ -204,8 +205,8 @@ WorkingDirectory=/var/lib/rustdesk-server/
 User=${uname}
 Group=${uname}
 Restart=always
-StandardOutput=append:/var/log/rustdesk/rustdeskhbbr.log
-StandardError=append:/var/log/rustdesk/rustdeskhbbr.error
+StandardOutput=append:/var/log/rustdesk-server/rustdeskhbbr.log
+StandardError=append:/var/log/rustdesk-server/rustdeskhbbr.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
