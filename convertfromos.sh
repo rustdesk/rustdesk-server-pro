@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# This script will do the following to install RustDesk Pro replacing RustDesk Opensource
+# This script will do the following to install RustDesk Server Pro replacing RustDesk Server Opensource
 # 1. Disable and removes the old services
-# 2. Install some dependencys
+# 2. Install some dependencies
 # 3. Setup ufw firewall if available
 # 4. Create a Folder /var/lib/rustdesk-server and copy the certs here
 # 5. Download and extract RustDesk Pro Services to the above folder
@@ -180,8 +180,8 @@ WorkingDirectory=/var/lib/rustdesk-server/
 User=${uname}
 Group=${uname}
 Restart=always
-StandardOutput=append:/var/log/rustdesk-server/rustdeskhbbs.log
-StandardError=append:/var/log/rustdesk-server/rustdeskhbbs.error
+StandardOutput=append:/var/log/rustdesk-server/hbbs.log
+StandardError=append:/var/log/rustdesk-server/hbbs.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
@@ -205,8 +205,8 @@ WorkingDirectory=/var/lib/rustdesk-server/
 User=${uname}
 Group=${uname}
 Restart=always
-StandardOutput=append:/var/log/rustdesk-server/rustdeskhbbr.log
-StandardError=append:/var/log/rustdesk-server/rustdeskhbbr.error
+StandardOutput=append:/var/log/rustdesk-server/hbbr.log
+StandardError=append:/var/log/rustdesk-server/hbbr.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
