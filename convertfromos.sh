@@ -1,16 +1,28 @@
 #!/bin/bash
 
-# This script will do the following to install RustDesk Server Pro
-# 1. Install some dependencies
-# 2. Setup ufw firewall if available
-# 3. Create 2 Folders /var/lib/rustdesk-server and /var/log/rustdesk-server
-# 4. Download and extract RustDesk Pro Services to the above folder
-# 5. Create systemd services for hbbs and hbbr
-# 6. If you chose Domain, it will install Nginx and certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, this will autorenew.
+# This script will do the following to install RustDesk Server Pro replacing RustDesk Server Opensource
+# 1. Disable and removes the old services
+# 2. Install some dependencies
+# 3. Setup ufw firewall if available
+# 4. Create a Folder /var/lib/rustdesk-server and copy the certs here
+# 5. Download and extract RustDesk Pro Services to the above folder
+# 6. Create systemd services for hbbs and hbbr
+# 7. If you chose Domain, it will install Nginx and certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, this will autorenew.
 
 # Get Username
 uname=$(whoami)
 admintoken=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c16)
+
+sudo systemctl stop gohttpserver.service
+sudo systemctl stop rustdesksignal.service
+sudo systemctl stop rustdeskrelay.service
+sudo systemctl disable rustdesksignal.service
+sudo systemctl disable rustdeskrelay.service
+sudo systemctl disable gohttpserver.service
+sudo rm /etc/systemd/system/gohttpserver.service
+sudo rm /etc/systemd/system/rustdeskrelay.service
+sudo rm /etc/systemd/system/rustdesksignal.service
+
 
 ARCH=$(uname -m)
 
@@ -110,6 +122,9 @@ fi
 sudo chown "${uname}" -R /var/lib/rustdesk-server
 cd /var/lib/rustdesk-server/ || exit 1
 
+mv /opt/rustdesk/id_* /var/lib/rustdesk-server/
+
+sudo rm -rf /opt/rustdesk
 
 #Download latest version of Rustdesk
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }')
@@ -151,6 +166,7 @@ if [ ! -d "/var/log/rustdesk-server" ]; then
     sudo mkdir -p /var/log/rustdesk-server/
 fi
 sudo chown "${uname}" -R /var/log/rustdesk-server/
+sudo rm -rf /var/log/rustdesk/
 
 # Setup Systemd to launch hbbs
 rustdeskhbbs="$(cat << EOF
