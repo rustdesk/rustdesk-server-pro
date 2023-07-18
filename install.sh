@@ -2,33 +2,31 @@
 
 # This script will do the following to install RustDesk Server Pro
 # 1. Install some dependencies
-# 2. Setup ufw firewall if available
-# 3. Create 2 Folders /var/lib/rustdesk-server and /var/log/rustdesk-server
+# 2. Setup UFW firewall if available
+# 3. Create 2 folders /var/lib/rustdesk-server and /var/log/rustdesk-server
 # 4. Download and extract RustDesk Pro Services to the above folder
 # 5. Create systemd services for hbbs and hbbr
-# 6. If you chose Domain, it will install Nginx and certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, this will autorenew.
+# 6. If you choose Domain, it will install Nginx and Certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, it is automatically renewed
 
-# Get Username
+# Get username
 uname=$(whoami)
 admintoken=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c16)
 
 ARCH=$(uname -m)
 
 
-# identify OS
+# Identify OS
 if [ -f /etc/os-release ]; then
     # freedesktop.org and systemd
     . /etc/os-release
     OS=$NAME
     VER=$VERSION_ID
-
     UPSTREAM_ID=${ID_LIKE,,}
 
     # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
     if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]; then
         UPSTREAM_ID="$(echo ${ID_LIKE,,} | sed s/\"//g | cut -d' ' -f1)"
     fi
-
 
 elif type lsb_release >/dev/null 2>&1; then
     # linuxbase.org
@@ -40,13 +38,13 @@ elif [ -f /etc/lsb-release ]; then
     OS=$DISTRIB_ID
     VER=$DISTRIB_RELEASE
 elif [ -f /etc/debian_version ]; then
-    # Older Debian/Ubuntu/etc.
+    # Older Debian, Ubuntu, etc.
     OS=Debian
     VER=$(cat /etc/debian_version)
-elif [ -f /etc/SuSe-release ]; then
-    # Older SuSE/etc.
+elif [ -f /etc/SuSE-release ]; then
+    # Older SuSE, etc.
     OS=SuSE
-    VER=$(cat /etc/SuSe-release)
+    VER=$(cat /etc/SuSE-release)
 elif [ -f /etc/redhat-release ]; then
     # Older Red Hat, CentOS, etc.
     OS=RedHat
@@ -58,7 +56,7 @@ else
 fi
 
 
-# output ebugging info if $DEBUG set
+# Output debugging info if $DEBUG set
 if [ "$DEBUG" = "true" ]; then
     echo "OS: $OS"
     echo "VER: $VER"
@@ -67,41 +65,40 @@ if [ "$DEBUG" = "true" ]; then
 fi
 
 # Setup prereqs for server
-# common named prereqs
+# Common named prereqs
 PREREQ="curl wget unzip tar"
-PREREQDEB="dnsutils ufw" 
+PREREQDEB="dnsutils ufw"
 PREREQRPM="bind-utils"
 PREREQARCH="bind"
 
 echo "Installing prerequisites"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ]  || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
+if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
     sudo apt-get update
-    sudo apt-get install -y  ${PREREQ} ${PREREQDEB} # git
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ]   || [ "${UPSTREAM_ID}" = "rhel" ] ; then
-# opensuse 15.4 fails to run the relay service and hangs waiting for it
-# needs more work before it can be enabled
+    sudo apt-get install -y ${PREREQ} ${PREREQDEB} # git
+elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] ; then
+# openSUSE 15.4 fails to run the relay service and hangs waiting for it
+# Needs more work before it can be enabled
 # || [ "${UPSTREAM_ID}" = "suse" ]
     sudo yum update -y
-    sudo yum install -y  ${PREREQ} ${PREREQRPM} # git
+    sudo yum install -y ${PREREQ} ${PREREQRPM} # git
 elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]; then
     sudo pacman -Syu
     sudo pacman -S ${PREREQ} ${PREREQARCH}
 else
     echo "Unsupported OS"
-    # here you could ask the user for permission to try and install anyway
-    # if they say yes, then do the install
-    # if they say no, exit the script
+    # Here you could ask the user for permission to try and install anyway
+    # If they say yes, then do the install
+    # If they say no, exit the script
     exit 1
 fi
 
 # Setting up firewall
-
 sudo ufw allow 21115:21119/tcp
 sudo ufw allow 22/tcp
 sudo ufw allow 21116/udp
 sudo ufw enable
 
-# Make Folder /var/lib/rustdesk-server/
+# Make folder /var/lib/rustdesk-server/
 if [ ! -d "/var/lib/rustdesk-server" ]; then
     echo "Creating /var/lib/rustdesk-server"
     sudo mkdir -p /var/lib/rustdesk-server/
@@ -111,10 +108,10 @@ sudo chown "${uname}" -R /var/lib/rustdesk-server
 cd /var/lib/rustdesk-server/ || exit 1
 
 
-#Download latest version of Rustdesk
+# Download latest version of RustDesk
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }')
 
-echo "Installing Rustdesk Server"
+echo "Installing RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
 wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/1.1.8/rustdesk-server-linux-amd64.zip
 unzip rustdesk-server-linux-amd64.zip
@@ -145,17 +142,17 @@ sudo chmod +x /usr/bin/hbbs
 sudo chmod +x /usr/bin/hbbr
 
 
-# Make Folder /var/log/rustdesk-server/
+# Make folder /var/log/rustdesk-server/
 if [ ! -d "/var/log/rustdesk-server" ]; then
     echo "Creating /var/log/rustdesk-server"
     sudo mkdir -p /var/log/rustdesk-server/
 fi
 sudo chown "${uname}" -R /var/log/rustdesk-server/
 
-# Setup Systemd to launch hbbs
+# Setup systemd to launch hbbs
 rustdeskhbbs="$(cat << EOF
 [Unit]
-Description=Rustdesk Signal Server
+Description=RustDesk Signal Server
 [Service]
 Type=simple
 LimitNOFILE=1000000
@@ -177,10 +174,10 @@ sudo systemctl daemon-reload
 sudo systemctl enable rustdesk-hbbs.service
 sudo systemctl start rustdesk-hbbs.service
 
-# Setup Systemd to launch hbbr
+# Setup systemd to launch hbbr
 rustdeskhbbr="$(cat << EOF
 [Unit]
-Description=Rustdesk Relay Server
+Description=RustDesk Relay Server
 [Service]
 Type=simple
 LimitNOFILE=1000000
@@ -204,7 +201,7 @@ sudo systemctl start rustdesk-hbbr.service
 
 while ! [[ $CHECK_RUSTDESK_READY ]]; do
   CHECK_RUSTDESK_READY=$(sudo systemctl status rustdesk-hbbr.service | grep "Active: active (running)")
-  echo -ne "Rustdesk Relay not ready yet...${NC}\n"
+  echo -ne "RustDesk Relay not ready yet...${NC}\n"
   sleep 3
 done
 
@@ -237,11 +234,11 @@ break
 ;;
 
 "DNS/Domain")
-echo -ne "Enter your preferred domain/dns address ${NC}: "
+echo -ne "Enter your preferred domain/DNS address ${NC}: "
 read wanip
-#check wanip is valid domain
+# Check wanip is valid domain
 if ! [[ $wanip =~ ^[a-zA-Z0-9]+([a-zA-Z0-9.-]*[a-zA-Z0-9]+)?$ ]]; then
-    echo -e "${RED}Invalid domain/dns address${NC}"
+    echo -e "${RED}Invalid domain/DNS address${NC}"
     exit 1
 fi
 sudo apt -y install nginx
@@ -262,7 +259,7 @@ echo "${rustdesknginx}" | sudo tee /etc/nginx/sites-available/rustdesk.conf >/de
 sudo rm /etc/nginx/sites-available/default
 sudo rm /etc/nginx/sites-enabled/default
 
-sudo ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rustdesk.conf 
+sudo ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rustdesk.conf
 
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
@@ -273,7 +270,7 @@ sudo certbot --nginx -d ${wanip}
 
 break
 ;;
-*) echo "invalid option $REPLY";;
+*) echo "Invalid option $REPLY";;
 esac
 done
 
