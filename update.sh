@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Get Username
-uname=$(whoami) # not used btw .. yet
+# Get username
+uname=$(whoami) # not used btw ... yet
 
 # Get current release version
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }' | sed 's/-.*//')
 RDCURRENT=$(/usr/bin/rustdesk-server/hbbr --version | sed -r 's/hbbr (.*)-.*/\1/')
 
 if [ $RDLATEST == $RDCURRENT ]; then
-    echo "Same version no need to update."
+    echo "Same version, no need to update."
     exit 0
 fi
 
@@ -18,13 +18,15 @@ sleep 20
 
 ARCH=$(uname -m)
 
-# identify OS
+
+# Identify OS
 if [ -f /etc/os-release ]; then
     # freedesktop.org and systemd
     . /etc/os-release
     OS=$NAME
     VER=$VERSION_ID
     UPSTREAM_ID=${ID_LIKE,,}
+
     # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
     if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]; then
         UPSTREAM_ID="$(echo ${ID_LIKE,,} | sed s/\"//g | cut -d' ' -f1)"
@@ -40,13 +42,13 @@ elif [ -f /etc/lsb-release ]; then
     OS=$DISTRIB_ID
     VER=$DISTRIB_RELEASE
 elif [ -f /etc/debian_version ]; then
-    # Older Debian/Ubuntu/etc.
+    # Older Debian, Ubuntu, etc.
     OS=Debian
     VER=$(cat /etc/debian_version)
-elif [ -f /etc/SuSe-release ]; then
-    # Older SuSE/etc.
+elif [ -f /etc/SuSE-release ]; then
+    # Older SuSE, etc.
     OS=SuSE
-    VER=$(cat /etc/SuSe-release)
+    VER=$(cat /etc/SuSE-release)
 elif [ -f /etc/redhat-release ]; then
     # Older Red Hat, CentOS, etc.
     OS=RedHat
@@ -58,7 +60,7 @@ else
 fi
 
 
-# output ebugging info if $DEBUG set
+# Output debugging info if $DEBUG set
 if [ "$DEBUG" = "true" ]; then
     echo "OS: $OS"
     echo "VER: $VER"
@@ -67,8 +69,8 @@ if [ "$DEBUG" = "true" ]; then
 fi
 
 
-if ! [ -e /var/lib/rustdesk-server/  ]; then
-        echo "No directory /var/lib/rustdesk-server/ found. No update of rustdesk possible (use install.sh script ?) "
+if ! [ -e /var/lib/rustdesk-server/ ]; then
+        echo "No directory /var/lib/rustdesk-server/ found. No update of RustDesk possible (use install.sh script?)"
         exit 4
 else
         :
@@ -77,7 +79,7 @@ fi
 cd /var/lib/rustdesk-server/
 rm -rf static/
 
-echo "Upgrading Rustdesk Server"
+echo "Upgrading RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
 wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/1.1.8/rustdesk-server-linux-amd64.zip
 unzip rustdesk-server-linux-amd64.zip
@@ -112,7 +114,7 @@ sudo systemctl start rustdesk-hbbr.service
 
 while ! [[ $CHECK_RUSTDESK_READY ]]; do
   CHECK_RUSTDESK_READY=$(sudo systemctl status rustdesk-hbbr.service | grep "Active: active (running)")
-  echo -ne "Rustdesk Relay not ready yet...${NC}\n"
+  echo -ne "RustDesk Relay not ready yet...${NC}\n"
   sleep 3
 done
 
