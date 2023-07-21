@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# If any command fails, fail out
-set -e
-
 # This script will do the following to install RustDesk Server Pro replacing RustDesk Server Open Source
 # 1. Disable and removes the old services
 # 2. Install some dependencies
