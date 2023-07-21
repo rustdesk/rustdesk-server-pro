@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# If any command fails, fail out
-set -e
-
 # Get username
 uname=$(whoami) # not used btw ... yet
 
