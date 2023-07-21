@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# If any command fails, fail out
-set -e
-
 # This script will do the following to install RustDesk Server Pro
 # 1. Install some dependencies
 # 2. Setup UFW firewall if available
