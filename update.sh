@@ -5,7 +5,7 @@ uname=$(whoami) # not used btw ... yet
 
 # Get current release version
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }' | sed 's/-.*//')
-RDCURRENT=$(/usr/bin/rustdesk-server/hbbr --version | sed -r 's/hbbr (.*)-.*/\1/')
+RDCURRENT=$(/usr/bin/hbbr --version | sed -r 's/hbbr (.*)/\1/')
 
 if [ $RDLATEST == $RDCURRENT ]; then
     echo "Same version, no need to update."
