@@ -81,7 +81,7 @@ rm -rf static/
 
 echo "Upgrading RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
-wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/1.1.8/rustdesk-server-linux-amd64.tar.gz
+wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-amd64.tar.gz
 tar -xf rustdesk-server-linux-amd64.tar.gz
 mv amd64/static /var/lib/rustdesk-server/
 sudo mv amd64/hbbr /usr/bin/
