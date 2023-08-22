@@ -81,29 +81,29 @@ rm -rf static/
 
 echo "Upgrading RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
-wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/1.1.8/rustdesk-server-linux-amd64.zip
-unzip rustdesk-server-linux-amd64.zip
+wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-amd64.tar.gz
+tar -xf rustdesk-server-linux-amd64.tar.gz
 mv amd64/static /var/lib/rustdesk-server/
 sudo mv amd64/hbbr /usr/bin/
 sudo mv amd64/hbbs /usr/bin/
 rm -rf amd64/
-rm -rf rustdesk-server-linux-amd64.zip
+rm -rf rustdesk-server-linux-amd64.tar.gz
 elif [ "${ARCH}" = "armv7l" ] ; then
-wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.zip"
-unzip rustdesk-server-linux-armv7.zip
+wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.tar.gz"
+tar -xf rustdesk-server-linux-armv7.tar.gz
 mv armv7/static /var/lib/rustdesk-server/
 sudo mv armv7/hbbr /usr/bin/
 sudo mv armv7/hbbs /usr/bin/
 rm -rf armv7/
-rm -rf rustdesk-server-linux-armv7.zip
+rm -rf rustdesk-server-linux-armv7.tar.gz
 elif [ "${ARCH}" = "aarch64" ] ; then
-wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.zip"
-unzip rustdesk-server-linux-arm64v8.zip
+wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.tar.gz"
+tar -xf rustdesk-server-linux-arm64v8.tar.gz
 mv arm64v8/static /var/lib/rustdesk-server/
 sudo mv arm64v8/hbbr /usr/bin/
 sudo mv arm64v8/hbbs /usr/bin/
 rm -rf arm64v8/
-rm -rf rustdesk-server-linux-arm64v8.zip
+rm -rf rustdesk-server-linux-arm64v8.tar.gz
 fi
 
 sudo chmod +x /usr/bin/hbbs
