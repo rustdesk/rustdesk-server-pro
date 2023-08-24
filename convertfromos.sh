@@ -226,13 +226,13 @@ key=$(cat "${pubname}")
 
 echo "Tidying up install"
 if [ "${ARCH}" = "x86_64" ] ; then
-rm rustdesk-server-linux-amd64.zip
+rm rustdesk-server-linux-amd64.tar.gz
 rm -rf amd64
 elif [ "${ARCH}" = "armv7l" ] ; then
-rm rustdesk-server-linux-armv7.zip
+rm rustdesk-server-linux-armv7.tar.gz
 rm -rf armv7
 elif [ "${ARCH}" = "aarch64" ] ; then
-rm rustdesk-server-linux-arm64v8.zip
+rm rustdesk-server-linux-arm64v8.tar.gz
 rm -rf arm64v8
 fi
 
