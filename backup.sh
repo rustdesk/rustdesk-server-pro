@@ -43,7 +43,7 @@ sysd="/etc/systemd/system"
 mkdir -p ${tmp_dir}/rustdesk
 
 cp -rf /var/lib/rustdesk-server/ ${tmp_dir}/
-sqlite3 db.sqlite3 ".backup '${tmp_dir}/db_backup_file.sq3'"
+sqlite3 db.sqlite3 .dump > ${tmp_dir}/db_backup_file.sq3
 
 if [[ $* == *--auto* ]]; then
 
