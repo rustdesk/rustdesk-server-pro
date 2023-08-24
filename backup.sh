@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-uname=$(whoami)
+usern=$(whoami)
 path=$(pwd)
 echo $path
 
@@ -24,15 +24,15 @@ if [[ $* == *--schedule* ]]; then
     if [ ! -d /opt/rustdesk-server-backups/monthly ]; then
         sudo mkdir /opt/rustdesk-server-backups/monthly
     fi
-    sudo chown ${uname}:${uname} -R /opt/rustdesk-server-backups
+    sudo chown ${usern}:${usern} -R /opt/rustdesk-server-backups
 
-    printf >&2 "${GREEN}Backups setup to run at midnight and rotate.${NC}\n"
+    printf >&2 "Backups setup to run at midnight and rotate."
     exit 0
 fi
 
 if [ ! -d /opt/rustdesk-server-backups ]; then
     sudo mkdir /opt/rustdesk-server-backups
-    sudo chown ${uname}:${uname} /opt/rustdesk-server-backups
+    sudo chown ${usern}:${usern} /opt/rustdesk-server-backups
 	sudo apt install sqlite3 -y
 fi
 
@@ -65,11 +65,11 @@ if [[ $* == *--auto* ]]; then
     find /opt/rustdesk-server-backups/daily/ -type f -mtime +14 -name '*.tar' -execdir rm -- '{}' \;
     find /opt/rustdesk-server-backups/weekly/ -type f -mtime +60 -name '*.tar' -execdir rm -- '{}' \;
     find /opt/rustdesk-server-backups/monthly/ -type f -mtime +380 -name '*.tar' -execdir rm -- '{}' \;
-    echo -ne "${GREEN}Backup Completed${NC}\n"
+    echo -ne "Backup Completed"
     exit
 
 else
     tar -cf /opt/rustdesk-server-backups/rustdesk-backup-${dt_now}.tar -C ${tmp_dir} .
     rm -rf ${tmp_dir}
-    echo -ne "${GREEN}Backup saved to /opt/rustdesk-server-backups/rustdesk-backup-${dt_now}.tar${NC}\n"
+    echo -ne "Backup saved to /opt/rustdesk-server-backups/rustdesk-backup-${dt_now}.tar"
 fi
