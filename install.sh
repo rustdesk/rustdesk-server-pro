@@ -9,7 +9,7 @@
 # 6. If you choose Domain, it will install Nginx and Certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, it is automatically renewed
 
 # Get username
-uname=$(whoami)
+usern=$(whoami)
 admintoken=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c16)
 
 ARCH=$(uname -m)
@@ -104,7 +104,7 @@ if [ ! -d "/var/lib/rustdesk-server" ]; then
     sudo mkdir -p /var/lib/rustdesk-server/
 fi
 
-sudo chown "${uname}" -R /var/lib/rustdesk-server
+sudo chown "${usern}" -R /var/lib/rustdesk-server
 cd /var/lib/rustdesk-server/ || exit 1
 
 
@@ -147,7 +147,7 @@ if [ ! -d "/var/log/rustdesk-server" ]; then
     echo "Creating /var/log/rustdesk-server"
     sudo mkdir -p /var/log/rustdesk-server/
 fi
-sudo chown "${uname}" -R /var/log/rustdesk-server/
+sudo chown "${usern}" -R /var/log/rustdesk-server/
 
 # Setup systemd to launch hbbs
 rustdeskhbbs="$(cat << EOF
@@ -158,8 +158,8 @@ Type=simple
 LimitNOFILE=1000000
 ExecStart=/usr/bin/hbbs
 WorkingDirectory=/var/lib/rustdesk-server/
-User=${uname}
-Group=${uname}
+User=${usern}
+Group=${usern}
 Restart=always
 StandardOutput=append:/var/log/rustdesk-server/hbbs.log
 StandardError=append:/var/log/rustdesk-server/hbbs.error
@@ -183,8 +183,8 @@ Type=simple
 LimitNOFILE=1000000
 ExecStart=/usr/bin/hbbr
 WorkingDirectory=/var/lib/rustdesk-server/
-User=${uname}
-Group=${uname}
+User=${usern}
+Group=${usern}
 Restart=always
 StandardOutput=append:/var/log/rustdesk-server/hbbr.log
 StandardError=append:/var/log/rustdesk-server/hbbr.error
