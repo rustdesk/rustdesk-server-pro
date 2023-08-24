@@ -116,7 +116,6 @@ if [ ! -d "/var/log/rustdesk-server" ]; then
     sudo mkdir -p /var/log/rustdesk-server/
 fi
 sudo chown "${usern}" -R /var/log/rustdesk-server/
-sudo rm -rf /var/log/rustdesk/
 
 # Setup systemd to launch hbbs
 rustdeskhbbs="$(cat << EOF
