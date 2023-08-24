@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+uname=$(whoami)
 path=$(pwd)
 echo $path
 
@@ -24,7 +24,7 @@ if [[ $* == *--schedule* ]]; then
     if [ ! -d /opt/rustdesk-server-backups/monthly ]; then
         sudo mkdir /opt/rustdesk-server-backups/monthly
     fi
-    sudo chown ${USER}:${USER} -R /opt/rustdesk-server-backups
+    sudo chown ${uname}:${uname} -R /opt/rustdesk-server-backups
 
     printf >&2 "${GREEN}Backups setup to run at midnight and rotate.${NC}\n"
     exit 0
@@ -32,7 +32,7 @@ fi
 
 if [ ! -d /opt/rustdesk-server-backups ]; then
     sudo mkdir /opt/rustdesk-server-backups
-    sudo chown ${USER}:${USER} /opt/rustdesk-server-backups
+    sudo chown ${uname}:${uname} /opt/rustdesk-server-backups
 	sudo apt install sqlite3 -y
 fi
 
