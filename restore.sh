@@ -1,16 +1,29 @@
-#!/bin/bash
-
-# This script will do the following to install RustDesk Server Pro
-# 1. Install some dependencies
-# 2. Setup UFW firewall if available
-# 3. Create 2 folders /var/lib/rustdesk-server and /var/log/rustdesk-server
-# 4. Download and extract RustDesk Pro Services to the above folder
-# 5. Create systemd services for hbbs and hbbr
-# 6. If you choose Domain, it will install Nginx and Certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, it is automatically renewed
-
-# Get username
+#!/usr/bin/env bash
 usern=$(whoami)
-admintoken=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c16)
+path=$(pwd)
+echo $path
+
+# Make folder /var/lib/rustdesk-server/
+if [ ! -d "/var/lib/rustdesk-server" ]; then
+    echo "Creating /var/lib/rustdesk-server"
+    sudo mkdir -p /var/lib/rustdesk-server/
+    sudo chown ${usern}:${usern} -R /var/lib/rustdesk-server/
+
+fi
+
+sudo apt update
+sudo apt install sqlite3 -y
+
+mkdir -p ${tmp_dir}/
+
+tar -xf $path/*.tar -C $tmp_dir
+
+
+cp -rf ${tmp_dir}/ /var/lib/rustdesk-server/
+sqlite3 db.sqlite3 < db_backup_file.bak
+
+# Get current release version
+RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }' | sed 's/-.*//')
 
 ARCH=$(uname -m)
 
@@ -64,52 +77,8 @@ if [ "$DEBUG" = "true" ]; then
     exit 0
 fi
 
-# Setup prereqs for server
-# Common named prereqs
-PREREQ="curl wget unzip tar"
-PREREQDEB="dnsutils ufw"
-PREREQRPM="bind-utils"
-PREREQARCH="bind"
-
-echo "Installing prerequisites"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
-    sudo apt-get update
-    sudo apt-get install -y ${PREREQ} ${PREREQDEB} # git
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] ; then
-# openSUSE 15.4 fails to run the relay service and hangs waiting for it
-# Needs more work before it can be enabled
-# || [ "${UPSTREAM_ID}" = "suse" ]
-    sudo yum update -y
-    sudo yum install -y ${PREREQ} ${PREREQRPM} # git
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]; then
-    sudo pacman -Syu
-    sudo pacman -S ${PREREQ} ${PREREQARCH}
-else
-    echo "Unsupported OS"
-    # Here you could ask the user for permission to try and install anyway
-    # If they say yes, then do the install
-    # If they say no, exit the script
-    exit 1
-fi
-
-# Setting up firewall
-sudo ufw allow 21115:21119/tcp
-sudo ufw allow 22/tcp
-sudo ufw allow 21116/udp
-sudo ufw enable
-
-# Make folder /var/lib/rustdesk-server/
-if [ ! -d "/var/lib/rustdesk-server" ]; then
-    echo "Creating /var/lib/rustdesk-server"
-    sudo mkdir -p /var/lib/rustdesk-server/
-fi
-
-sudo chown "${usern}" -R /var/lib/rustdesk-server
-cd /var/lib/rustdesk-server/ || exit 1
-
-
-# Download latest version of RustDesk
-RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }')
+cd /var/lib/rustdesk-server/
+rm -rf static/
 
 echo "Installing RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
@@ -140,7 +109,6 @@ fi
 
 sudo chmod +x /usr/bin/hbbs
 sudo chmod +x /usr/bin/hbbr
-
 
 # Make folder /var/log/rustdesk-server/
 if [ ! -d "/var/log/rustdesk-server" ]; then
@@ -210,13 +178,13 @@ key=$(cat "${pubname}")
 
 echo "Tidying up install"
 if [ "${ARCH}" = "x86_64" ] ; then
-rm rustdesk-server-linux-amd64.zip
+rm rustdesk-server-linux-amd64.tar.gz
 rm -rf amd64
 elif [ "${ARCH}" = "armv7l" ] ; then
-rm rustdesk-server-linux-armv7.zip
+rm rustdesk-server-linux-armv7.tar.gz
 rm -rf armv7
 elif [ "${ARCH}" = "aarch64" ] ; then
-rm rustdesk-server-linux-arm64v8.zip
+rm rustdesk-server-linux-arm64v8.tar.gz
 rm -rf arm64v8
 fi
 
@@ -276,3 +244,5 @@ done
 
 echo -e "Your IP/DNS Address is ${wanip}"
 echo -e "Your public key is ${key}"
+
+echo -e "Restore is complete"
