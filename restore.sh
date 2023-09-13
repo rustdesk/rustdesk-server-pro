@@ -238,8 +238,27 @@ if ! [[ $wanip =~ ^[a-zA-Z0-9]+([a-zA-Z0-9.-]*[a-zA-Z0-9]+)?$ ]]; then
     echo -e "${RED}Invalid domain/DNS address${NC}"
     exit 1
 fi
-sudo apt -y install nginx
-sudo apt -y install python3-certbot-nginx
+
+echo "Installing nginx"
+if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
+    sudo apt -y install nginx
+    sudo apt -y install python3-certbot-nginx
+elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ] ; then
+# openSUSE 15.4 fails to run the relay service and hangs waiting for it
+# Needs more work before it can be enabled
+# || [ "${UPSTREAM_ID}" = "suse" ]
+    sudo yum -y install nginx
+    sudo yum -y install python3-certbot-nginx
+elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]; then
+    sudo pacman -S install nginx
+    sudo pacman -S install python3-certbot-nginx
+else
+    echo "Unsupported OS"
+    # Here you could ask the user for permission to try and install anyway
+    # If they say yes, then do the install
+    # If they say no, exit the script
+    exit 1
+fi
 
 rustdesknginx="$(
   cat <<EOF
