@@ -3,12 +3,10 @@ usern=$(whoami)
 path=$(pwd)
 echo $path
 
-# Make folder /var/lib/rustdesk-server/
-if [ ! -d "/var/lib/rustdesk-server" ]; then
-    echo "Creating /var/lib/rustdesk-server"
-    sudo mkdir -p /var/lib/rustdesk-server/
-    sudo chown ${usern}:${usern} -R /var/lib/rustdesk-server/
-
+# Check for /var/lib/rustdesk-server/
+if [ -d "/var/lib/rustdesk-server" ]; then
+    echo "Directory already exists so not needing to restore"
+    exit
 fi
 
 ARCH=$(uname -m)
@@ -92,12 +90,12 @@ else
     exit 1
 fi
 
-
-mkdir -p ${tmp_dir}/
+tmp_dir=$(mktemp -d -t)
 
 tar -xf $path/*.tar -C $tmp_dir
 
-cp -rf ${tmp_dir}/ /var/lib/rustdesk-server/
+cp -rf ${tmp_dir}/rustdesk-server/ /var/lib/
+sudo chown ${usern}:${usern} -R /var/lib/rustdesk-server/
 rm /var/lib/rustdesk-server/db.sqlite3
 sqlite3 /var/lib/rustdesk-server/db.sqlite3 < ${tmp_dir}/db_backup_file.sql
 
@@ -106,8 +104,6 @@ RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releas
 
 cd /var/lib/rustdesk-server/
 rm -rf static/
-
-rm -rf ${tmp_dir}/
 
 echo "Installing RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
@@ -216,6 +212,8 @@ elif [ "${ARCH}" = "aarch64" ] ; then
 rm rustdesk-server-linux-arm64v8.tar.gz
 rm -rf arm64v8
 fi
+
+rm -rf ${tmp_dir}/
 
 # Choice for DNS or IP
 PS3='Choose your preferred option, IP or DNS/Domain:'
