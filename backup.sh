@@ -120,8 +120,6 @@ dt_now=$(date '+%Y_%m_%d__%H_%M_%S')
 tmp_dir=$(mktemp -d -t rustdesk-XXXXXXXXXXXXXXXXXXXXX)
 sysd="/etc/systemd/system"
 
-mkdir -p ${tmp_dir}/rustdesk
-
 cp -rf /var/lib/rustdesk-server/ ${tmp_dir}/
 sqlite3 /var/lib/rustdesk-server/db.sqlite3 .dump > ${tmp_dir}/db_backup_file.sql
 
