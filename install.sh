@@ -16,7 +16,8 @@ export admintoken
 ARCH=$(uname -m)
 
 # Identify OS
-if [ -f /etc/os-release ]; then
+if [ -f /etc/os-release ]
+then
     # freedesktop.org and systemd
     # shellcheck source=/dev/null
     source /etc/os-release
@@ -25,29 +26,35 @@ if [ -f /etc/os-release ]; then
     UPSTREAM_ID=${ID_LIKE,,}
 
     # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
-    if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]; then
+    if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]
+    then
         UPSTREAM_ID="$(echo "${ID_LIKE,,}" | sed s/\"//g | cut -d' ' -f1)"
     fi
 
-elif type lsb_release >/dev/null 2>&1; then
+elif type lsb_release >/dev/null 2>&1
+then
     # linuxbase.org
     OS=$(lsb_release -si)
     VER=$(lsb_release -sr)
-elif [ -f /etc/lsb-release ]; then
+elif [ -f /etc/lsb-release ]
+then
     # For some versions of Debian/Ubuntu without lsb_release command
     # shellcheck source=/dev/null
     source /etc/os-release
     OS=$DISTRIB_ID
     VER=$DISTRIB_RELEASE
-elif [ -f /etc/debian_version ]; then
+elif [ -f /etc/debian_version ]
+then
     # Older Debian, Ubuntu, etc.
     OS=Debian
     VER=$(cat /etc/debian_version)
-elif [ -f /etc/SuSE-release ]; then
+elif [ -f /etc/SuSE-release ]
+then
     # Older SuSE, etc.
     OS=SuSE
     VER=$(cat /etc/SuSE-release)
-elif [ -f /etc/redhat-release ]; then
+elif [ -f /etc/redhat-release ]
+then
     # Older Red Hat, CentOS, etc.
     OS=RedHat
     VER=$(cat /etc/redhat-release)
@@ -59,7 +66,8 @@ fi
 
 
 # Output debugging info if $DEBUG set
-if [ "$DEBUG" = "true" ]; then
+if [ "$DEBUG" = "true" ]
+then
     echo "OS: $OS"
     echo "VER: $VER"
     echo "UPSTREAM_ID: $UPSTREAM_ID"
@@ -74,16 +82,19 @@ PREREQRPM=(bind-utils)
 PREREQARCH=(bind)
 
 echo "Installing prerequisites"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
+if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
+then
     sudo apt-get update
     sudo apt-get install -y "${PREREQ[@]}" "${PREREQDEB[@]}" # git
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ] ; then
+elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
+then
 # openSUSE 15.4 fails to run the relay service and hangs waiting for it
 # Needs more work before it can be enabled
 # || [ "${UPSTREAM_ID}" = "suse" ]
     sudo yum update -y
     sudo yum install -y "${PREREQ[@]}" "${PREREQRPM[@]}" # git
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]; then
+elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
+then
     sudo pacman -Syu
     sudo pacman -S "${PREREQ[@]}" "${PREREQARCH[@]}"
 else
@@ -101,7 +112,8 @@ sudo ufw allow 21116/udp
 sudo ufw enable
 
 # Make folder /var/lib/rustdesk-server/
-if [ ! -d "/var/lib/rustdesk-server" ]; then
+if [ ! -d "/var/lib/rustdesk-server" ]
+then
     echo "Creating /var/lib/rustdesk-server"
     sudo mkdir -p /var/lib/rustdesk-server/
 fi
@@ -109,43 +121,44 @@ fi
 sudo chown "${usern}" -R /var/lib/rustdesk-server
 cd /var/lib/rustdesk-server/ || exit 1
 
-
 # Download latest version of RustDesk
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }')
 
 echo "Installing RustDesk Server"
-if [ "${ARCH}" = "x86_64" ] ; then
-wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/"${RDLATEST}"/rustdesk-server-linux-amd64.tar.gz
-tar -xf rustdesk-server-linux-amd64.tar.gz
-mv amd64/static /var/lib/rustdesk-server/
-sudo mv amd64/hbbr /usr/bin/
-sudo mv amd64/hbbs /usr/bin/
-rm -rf amd64/
-rm -rf rustdesk-server-linux-amd64.tar.gz
-elif [ "${ARCH}" = "armv7l" ] ; then
-wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.tar.gz"
-tar -xf rustdesk-server-linux-armv7.tar.gz
-mv armv7/static /var/lib/rustdesk-server/
-sudo mv armv7/hbbr /usr/bin/
-sudo mv armv7/hbbs /usr/bin/
-rm -rf armv7/
-rm -rf rustdesk-server-linux-armv7.tar.gz
+if [ "${ARCH}" = "x86_64" ]
+then
+    wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/"${RDLATEST}"/rustdesk-server-linux-amd64.tar.gz
+    tar -xf rustdesk-server-linux-amd64.tar.gz
+    mv amd64/static /var/lib/rustdesk-server/
+    sudo mv amd64/hbbr /usr/bin/
+    sudo mv amd64/hbbs /usr/bin/
+    rm -rf amd64/
+    rm -rf rustdesk-server-linux-amd64.tar.gz
+elif [ "${ARCH}" = "armv7l" ]
+then
+    wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.tar.gz"
+    tar -xf rustdesk-server-linux-armv7.tar.gz
+    mv armv7/static /var/lib/rustdesk-server/
+    sudo mv armv7/hbbr /usr/bin/
+    sudo mv armv7/hbbs /usr/bin/
+    rm -rf armv7/
+    rm -rf rustdesk-server-linux-armv7.tar.gz
 elif [ "${ARCH}" = "aarch64" ] ; then
-wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.tar.gz"
-tar -xf rustdesk-server-linux-arm64v8.tar.gz
-mv arm64v8/static /var/lib/rustdesk-server/
-sudo mv arm64v8/hbbr /usr/bin/
-sudo mv arm64v8/hbbs /usr/bin/
-rm -rf arm64v8/
-rm -rf rustdesk-server-linux-arm64v8.tar.gz
+    wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.tar.gz"
+    tar -xf rustdesk-server-linux-arm64v8.tar.gz
+    mv arm64v8/static /var/lib/rustdesk-server/
+    sudo mv arm64v8/hbbr /usr/bin/
+    sudo mv arm64v8/hbbs /usr/bin/
+    rm -rf arm64v8/
+    rm -rf rustdesk-server-linux-arm64v8.tar.gz
 fi
 
 sudo chmod +x /usr/bin/hbbs
 sudo chmod +x /usr/bin/hbbr
 
-
 # Make folder /var/log/rustdesk-server/
-if [ ! -d "/var/log/rustdesk-server" ]; then
+if [ ! -d "/var/log/rustdesk-server" ]
+then
     echo "Creating /var/log/rustdesk-server"
     sudo mkdir -p /var/log/rustdesk-server/
 fi
@@ -217,15 +230,18 @@ pubname=$(find /var/lib/rustdesk-server/ -name "*.pub")
 key=$(cat "${pubname}")
 
 echo "Tidying up install"
-if [ "${ARCH}" = "x86_64" ] ; then
-rm rustdesk-server-linux-amd64.zip
-rm -rf amd64
-elif [ "${ARCH}" = "armv7l" ] ; then
-rm rustdesk-server-linux-armv7.zip
-rm -rf armv7
-elif [ "${ARCH}" = "aarch64" ] ; then
-rm rustdesk-server-linux-arm64v8.zip
-rm -rf arm64v8
+if [ "${ARCH}" = "x86_64" ]
+then
+    rm rustdesk-server-linux-amd64.zip
+    rm -rf amd64
+elif [ "${ARCH}" = "armv7l" ]
+then
+    rm rustdesk-server-linux-armv7.zip
+    rm -rf armv7
+elif [ "${ARCH}" = "aarch64" ]
+then
+    rm rustdesk-server-linux-arm64v8.zip
+    rm -rf arm64v8
 fi
 
 # Choice for DNS or IP
@@ -245,23 +261,27 @@ break
 echo -ne "Enter your preferred domain/DNS address ${NC}: "
 read -r wanip
 # Check wanip is valid domain
-if ! [[ $wanip =~ ^[a-zA-Z0-9]+([a-zA-Z0-9.-]*[a-zA-Z0-9]+)?$ ]]; then
+if ! [[ $wanip =~ ^[a-zA-Z0-9]+([a-zA-Z0-9.-]*[a-zA-Z0-9]+)?$ ]]
+then
     echo -e "${RED}Invalid domain/DNS address${NC}"
     exit 1
 fi
 
 echo "Installing nginx"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
+if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
+then
     sudo apt -y install nginx
     apt -y install snapd
     snap install certbot --classic
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ] ; then
+elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
+then
 # openSUSE 15.4 fails to run the relay service and hangs waiting for it
 # Needs more work before it can be enabled
 # || [ "${UPSTREAM_ID}" = "suse" ]
     sudo yum -y install nginx
     sudo yum -y install python3-certbot-nginx
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]; then
+elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
+then
     sudo pacman -S install nginx
     sudo pacman -S install python3-certbot-nginx
 else
@@ -295,7 +315,6 @@ sudo ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rus
 
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-
 sudo ufw enable && ufw reload
 
 sudo certbot --nginx --cert-name "${wanip}" --key-type ecdsa --renew-by-default --no-eff-email --agree-tos --server https://acme-v02.api.letsencrypt.org/directory -d "${wanip}"
