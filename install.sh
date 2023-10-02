@@ -11,21 +11,22 @@
 # Get username
 usern=$(whoami)
 admintoken=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c16)
+export admintoken
 
 ARCH=$(uname -m)
-
 
 # Identify OS
 if [ -f /etc/os-release ]; then
     # freedesktop.org and systemd
-    . /etc/os-release
+    # shellcheck source=/dev/null
+    source /etc/os-release
     OS=$NAME
     VER=$VERSION_ID
     UPSTREAM_ID=${ID_LIKE,,}
 
     # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
     if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]; then
-        UPSTREAM_ID="$(echo ${ID_LIKE,,} | sed s/\"//g | cut -d' ' -f1)"
+        UPSTREAM_ID="$(echo "${ID_LIKE,,}" | sed s/\"//g | cut -d' ' -f1)"
     fi
 
 elif type lsb_release >/dev/null 2>&1; then
@@ -34,7 +35,8 @@ elif type lsb_release >/dev/null 2>&1; then
     VER=$(lsb_release -sr)
 elif [ -f /etc/lsb-release ]; then
     # For some versions of Debian/Ubuntu without lsb_release command
-    . /etc/lsb-release
+    # shellcheck source=/dev/null
+    source /etc/os-release
     OS=$DISTRIB_ID
     VER=$DISTRIB_RELEASE
 elif [ -f /etc/debian_version ]; then
@@ -66,24 +68,24 @@ fi
 
 # Setup prereqs for server
 # Common named prereqs
-PREREQ="curl wget unzip tar"
-PREREQDEB="dnsutils ufw"
-PREREQRPM="bind-utils"
-PREREQARCH="bind"
+PREREQ=(curl wget unzip tar)
+PREREQDEB=(dnsutils ufw)
+PREREQRPM=(bind-utils)
+PREREQARCH=(bind)
 
 echo "Installing prerequisites"
 if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
     sudo apt-get update
-    sudo apt-get install -y ${PREREQ} ${PREREQDEB} # git
+    sudo apt-get install -y "${PREREQ[@]}" "${PREREQDEB[@]}" # git
 elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ] ; then
 # openSUSE 15.4 fails to run the relay service and hangs waiting for it
 # Needs more work before it can be enabled
 # || [ "${UPSTREAM_ID}" = "suse" ]
     sudo yum update -y
-    sudo yum install -y ${PREREQ} ${PREREQRPM} # git
+    sudo yum install -y "${PREREQ[@]}" "${PREREQRPM[@]}" # git
 elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]; then
     sudo pacman -Syu
-    sudo pacman -S ${PREREQ} ${PREREQARCH}
+    sudo pacman -S "${PREREQ[@]}" "${PREREQARCH[@]}"
 else
     echo "Unsupported OS"
     # Here you could ask the user for permission to try and install anyway
@@ -113,7 +115,7 @@ RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releas
 
 echo "Installing RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
-wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-amd64.tar.gz
+wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/"${RDLATEST}"/rustdesk-server-linux-amd64.tar.gz
 tar -xf rustdesk-server-linux-amd64.tar.gz
 mv amd64/static /var/lib/rustdesk-server/
 sudo mv amd64/hbbr /usr/bin/
@@ -150,7 +152,11 @@ fi
 sudo chown "${usern}" -R /var/log/rustdesk-server/
 
 # Setup systemd to launch hbbs
-rustdeskhbbs="$(cat << EOF
+if [ ! -f "/etc/systemd/system/rustdesk-hbbs.service" ]
+then
+    rm -f "/etc/systemd/system/rustdesk-hbbs.service"
+    rm -f "/etc/systemd/system/rustdesk-hbbs.service"
+    cat << HBBS_RUSTDESK_SERVICE > "/etc/systemd/system/rustdesk-hbbs.service"
 [Unit]
 Description=RustDesk Signal Server
 [Service]
@@ -167,15 +173,18 @@ StandardError=append:/var/log/rustdesk-server/hbbs.error
 RestartSec=10
 [Install]
 WantedBy=multi-user.target
-EOF
-)"
-echo "${rustdeskhbbs}" | sudo tee /etc/systemd/system/rustdesk-hbbs.service > /dev/null
+HBBS_RUSTDESK_SERVICE
+fi
 sudo systemctl daemon-reload
 sudo systemctl enable rustdesk-hbbs.service
 sudo systemctl start rustdesk-hbbs.service
 
 # Setup systemd to launch hbbr
-rustdeskhbbr="$(cat << EOF
+if [ ! -f "/etc/systemd/system/rustdesk-hbbr.service" ]
+then
+    rm -f "/etc/systemd/system/rustdesk-hbbr.service"
+    rm -f "/etc/systemd/system/rustdesk-hbbr.service"
+    cat << HBBR_RUSTDESK_SERVICE > "/etc/systemd/system/rustdesk-hbbr.service"
 [Unit]
 Description=RustDesk Relay Server
 [Service]
@@ -192,9 +201,8 @@ StandardError=append:/var/log/rustdesk-server/hbbr.error
 RestartSec=10
 [Install]
 WantedBy=multi-user.target
-EOF
-)"
-echo "${rustdeskhbbr}" | sudo tee /etc/systemd/system/rustdesk-hbbr.service > /dev/null
+HBBR_RUSTDESK_SERVICE
+fi
 sudo systemctl daemon-reload
 sudo systemctl enable rustdesk-hbbr.service
 sudo systemctl start rustdesk-hbbr.service
@@ -235,7 +243,7 @@ break
 
 "DNS/Domain")
 echo -ne "Enter your preferred domain/DNS address ${NC}: "
-read wanip
+read -r wanip
 # Check wanip is valid domain
 if ! [[ $wanip =~ ^[a-zA-Z0-9]+([a-zA-Z0-9.-]*[a-zA-Z0-9]+)?$ ]]; then
     echo -e "${RED}Invalid domain/DNS address${NC}"
@@ -264,22 +272,24 @@ else
     exit 1
 fi
 
-rustdesknginx="$(
-  cat <<EOF
+if [ ! -f "/etc/nginx/sites-available/rustdesk.conf" ]
+then
+    rm -f "/etc/nginx/sites-available/rustdesk.conf"
+    rm -f "/etc/nginx/sites-enabled/rustdesk.conf"
+    cat << NGINX_RUSTDESK_CONF > "/etc/nginx/sites-available/rustdesk.conf"
 server {
   server_name ${wanip};
       location / {
-           proxy_set_header        X-Real-IP       $remote_addr;
-           proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header        X-Real-IP       \$remote_addr;
+           proxy_set_header        X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_pass http://127.0.0.1:21114/;
+      }
 }
-}
-EOF
-)"
-echo "${rustdesknginx}" | sudo tee /etc/nginx/sites-available/rustdesk.conf >/dev/null
+NGINX_RUSTDESK_CONF
+fi
 
-sudo rm /etc/nginx/sites-available/default
-sudo rm /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-available/default
+sudo rm -f /etc/nginx/sites-enabled/default
 
 sudo ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rustdesk.conf
 
@@ -288,7 +298,7 @@ sudo ufw allow 443/tcp
 
 sudo ufw enable && ufw reload
 
-sudo certbot --nginx -d ${wanip}
+sudo certbot --nginx --cert-name "${wanip}" --key-type ecdsa --renew-by-default --no-eff-email --agree-tos --server https://acme-v02.api.letsencrypt.org/directory -d "${wanip}"
 
 break
 ;;
