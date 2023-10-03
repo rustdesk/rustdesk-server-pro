@@ -121,9 +121,6 @@ true
 # shellcheck source=lib.sh
 source lib.sh
 
-ARCH=$(uname -m)
-TITLE="RustDesk Linux installer"
-
 # Select user for installation
 msg_box "Rustdesk needs to be installed as root, but you can still do some parts as an unprivileged user.
 Running with an unprivileged user enhances security, and is recommended."
