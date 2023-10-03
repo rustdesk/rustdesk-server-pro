@@ -364,7 +364,7 @@ do
         print_text_in_color "$ICyan" "Checking if public key is generated..."
         sleep 5
     else
-        print_text_in_color "$IGreen" "Pubilc key path: $PUBKEYNAME"
+        print_text_in_color "$IGreen" "Public key path: $PUBKEYNAME"
         PUBLICKEY=$(cat "$PUBKEYNAME")
         break
     fi
