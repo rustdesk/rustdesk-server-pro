@@ -175,12 +175,9 @@ then
         print_text_in_color "$IGreen" "Installing RustDesk Server..."
         # Create dir
         mkdir -p "$RUSTDESK_INSTALL_DIR"
-        chown -R "$RUSTDESK_USER":"$RUSTDESK_USER" "$RUSTDESK_INSTALL_DIR"
         if [ -d "$RUSTDESK_INSTALL_DIR" ]
         then
             cd "$RUSTDESK_INSTALL_DIR"
-            # Set permissions
-            chown "${usern}" -R "$RUSTDESK_INSTALL_DIR"
         else
             msg_box "It seems like the installation folder wasn't created, we can't continue.
 Please report this to: https://github.com/rustdesk/rustdesk-server-pro/issues"
@@ -207,7 +204,11 @@ This might be temporary, so please try to run the installation script again."
         fi
         # Extract, move in place, and make it executable
         tar -xf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
-        chown -R "$RUSTDESK_USER":"$RUSTDESK_USER" "$RUSTDESK_INSTALL_DIR"
+        # Set permissions
+        if [ -n "$RUSTDESK_USER" ]
+        then
+            chown "$RUSTDESK_USER" -R "$RUSTDESK_INSTALL_DIR"
+        fi
         # Move as root if RUSTDESK_USER is not set.
         if [ -n "$RUSTDESK_USER" ]
         then
@@ -235,7 +236,11 @@ if [ ! -d "$RUSTDESK_LOG_DIR" ]
 then
     print_text_in_color "$IGreen" "Creating $RUSTDESK_LOG_DIR"
     install -d -m 700 "$RUSTDESK_LOG_DIR"
-    chown -R "$RUSTDESK_USER" "$RUSTDESK_LOG_DIR"
+    # Set permissions
+    if [ -n "$RUSTDESK_USER" ]
+    then
+         chown -R "$RUSTDESK_USER" "$RUSTDESK_LOG_DIR"
+    fi
 fi
 
 # Setup systemd to launch hbbs
