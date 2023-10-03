@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# TEEEEEEEST
+sudo rm -Rf /usr/bin/hbbr /usr/bin/hbbs /var/log/rustdesk-server /var/lib/rustdesk-server
+
 # shellcheck disable=SC2034
 true
 # see https://github.com/koalaman/shellcheck/wiki/Directive
@@ -12,11 +15,29 @@ true
 # 5. Create systemd services for hbbs and hbbr
 # 6. If you choose Domain, it will install Nginx and Certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, it is automatically renewed
 
-# Get username
-usern=$(whoami)
-# Not used?
-admintoken=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c16)
-export admintoken
+# Download the lib file
+if ! curl -fSL --retry 3 https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o /tmp/lib.sh
+then
+    echo "Failed to download the lib.sh file. Please try again"
+fi
+
+# shellcheck source=lib.sh
+source /tmp/lib.sh
+
+if [[ "$EUID" -ne 0 ]]
+then
+    msg_box "Sorry, you are not root. You now have two options:
+
+1. Use SUDO directly:
+   a) :~$ sudo bash install.sh
+
+2. Become ROOT and then type your command:
+   a) :~$ sudo -i
+   b) :~# bash install.sh
+
+More information can be found here: https://unix.stackexchange.com/a/3064"
+    exit 1
+fi
 
 ARCH=$(uname -m)
 
@@ -72,6 +93,29 @@ fi
 # shellcheck source=lib.sh
 source ./lib.sh
 
+# Select user for installation
+msg_box "Rustdesk needs to be installed as root, but you can still do some parts as an unprivileged user.
+Running with an unprivileged user enhances security, and is recomended."
+
+if yesno_box_yes "Do you want to use an unprivileged user where it's possible?"
+then
+    while :
+    do
+        RUSTDESK_USER=$(input_box_flow "Please enter the name of your non-root user:")
+        if ! id "$RUSTDESK_USER"
+        then
+            msg_box "We couldn't find $RUSTDESK_USER on the system, are you sure it's correct?
+Please try again."
+        else
+            break
+        fi
+    done
+
+    run_as_non_root_user() {
+        sudo -u "$RUSTDESK_USER" "$@";
+    }
+fi
+
 # Output debugging info if $DEBUG set
 if [ "$DEBUG" = "true" ]
 then
@@ -91,19 +135,19 @@ PREREQARCH=(bind)
 print_text_in_color "$IGreen" "Installing prerequisites"
 if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
 then
-    sudo apt-get update
-    sudo apt-get install -y "${PREREQ[@]}" "${PREREQDEB[@]}" # git
+    apt-get update
+    apt-get install -y "${PREREQ[@]}" "${PREREQDEB[@]}" # git
 elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
 then
 # openSUSE 15.4 fails to run the relay service and hangs waiting for it
 # Needs more work before it can be enabled
 # || [ "${UPSTREAM_ID}" = "suse" ]
-    sudo yum update -y
-    sudo yum install -y "${PREREQ[@]}" "${PREREQRPM[@]}" # git
+    yum update -y
+    yum install -y "${PREREQ[@]}" "${PREREQRPM[@]}" # git
 elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
 then
-    sudo pacman -Syu
-    sudo pacman -S "${PREREQ[@]}" "${PREREQARCH[@]}"
+    pacman -Syu
+    pacman -S "${PREREQ[@]}" "${PREREQARCH[@]}"
 else
     print_text_in_color "$IRed" "Unsupported OS"
     # Here you could ask the user for permission to try and install anyway
@@ -113,10 +157,10 @@ else
 fi
 
 # Setting up firewall
-sudo ufw allow 21115:21119/tcp
-sudo ufw allow 22/tcp
-sudo ufw allow 21116/udp
-sudo ufw enable
+ufw allow 21115:21119/tcp
+ufw allow 22/tcp
+ufw allow 21116/udp
+ufw enable
 
 # Download latest version of RustDesk
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }')
@@ -129,12 +173,13 @@ then
     then
         print_text_in_color "$IGreen" "Installing RustDesk Server..."
         # Create dir
-        sudo mkdir -p "$RUSTDESK_INSTALL_DIR"
+        mkdir -p "$RUSTDESK_INSTALL_DIR"
+        chown -R "$RUSTDESK_USER":"$RUSTDESK_USER" "$RUSTDESK_INSTALL_DIR"
         if [ -d "$RUSTDESK_INSTALL_DIR" ]
         then
             cd "$RUSTDESK_INSTALL_DIR"
             # Set permissions
-            sudo chown "${usern}" -R "$RUSTDESK_INSTALL_DIR"
+            chown "${usern}" -R "$RUSTDESK_INSTALL_DIR"
         else
             msg_box "It seems like the installation folder wasn't created, we can't continue.
 Please report this to: https://github.com/rustdesk/rustdesk-server-pro/issues"
@@ -161,13 +206,14 @@ This might be temporary, so please try to run the installation script again."
         fi
         # Extract, move in place, and make it executable
         tar -xf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
-        mv "${ACTUAL_TAR_NAME}"/static "$RUSTDESK_INSTALL_DIR"
-        sudo mv "${ACTUAL_TAR_NAME}"/hbbr /usr/bin/
-        sudo mv "${ACTUAL_TAR_NAME}"/hbbs /usr/bin/
+        chown -R "$RUSTDESK_USER":"$RUSTDESK_USER" "$RUSTDESK_INSTALL_DIR"
+        run_as_non_root_user mv "${ACTUAL_TAR_NAME}"/static "$RUSTDESK_INSTALL_DIR"
+        mv "${ACTUAL_TAR_NAME}"/hbbr /usr/bin/
+        mv "${ACTUAL_TAR_NAME}"/hbbs /usr/bin/
         rm -rf "$RUSTDESK_INSTALL_DIR"/"${ACTUAL_TAR_NAME}"/
         rm -rf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
-        sudo chmod +x /usr/bin/hbbs
-        sudo chmod +x /usr/bin/hbbr
+        chmod +x /usr/bin/hbbs
+        chmod +x /usr/bin/hbbr
     else
         print_text_in_color "$IGreen" "Rustdesk server already installed."
     fi
@@ -181,15 +227,16 @@ fi
 if [ ! -d "$RUSTDESK_LOG_DIR" ]
 then
     print_text_in_color "$IGreen" "Creating $RUSTDESK_LOG_DIR"
-    sudo mkdir -p "$RUSTDESK_LOG_DIR"
+    install -d -m 700 "$RUSTDESK_LOG_DIR"
+    chown -R "$RUSTDESK_USER" "$RUSTDESK_LOG_DIR"
 fi
-sudo chown "${usern}" -R "$RUSTDESK_LOG_DIR"
 
 # Setup systemd to launch hbbs
-if [ ! -f "/etc/systemd/system/rustdesk-hbbs.service" ]
+if [ -f "/etc/systemd/system/rustdesk-hbbs.service" ]
 then
+    systemctl stop rustdesk-hbbs.service
     rm -f "/etc/systemd/system/rustdesk-hbbs.service"
-    rm -f "/etc/systemd/system/rustdesk-hbbs.service"
+    systemctl daemon-reload
     touch "/etc/systemd/system/rustdesk-hbbs.service"
     cat << HBBS_RUSTDESK_SERVICE > "/etc/systemd/system/rustdesk-hbbs.service"
 [Unit]
@@ -198,27 +245,28 @@ Description=RustDesk Signal Server
 Type=simple
 LimitNOFILE=1000000
 ExecStart=/usr/bin/hbbs
-WorkingDirectory="$RUSTDESK_INSTALL_DIR"
-User="${usern}"
-Group="${usern}"
+WorkingDirectory=$RUSTDESK_INSTALL_DIR
+User=${usern}
+Group=${usern}
 Restart=always
-StandardOutput=append:"$RUSTDESK_LOG_DIR"/hbbs.log
-StandardError=append:"$RUSTDESK_LOG_DIR"/hbbs.error
+StandardOutput=append:$RUSTDESK_LOG_DIR/hbbs.log
+StandardError=append:$RUSTDESK_LOG_DIR/hbbs.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
 WantedBy=multi-user.target
 HBBS_RUSTDESK_SERVICE
 fi
-sudo systemctl daemon-reload
-sudo systemctl enable rustdesk-hbbs.service
-sudo systemctl start rustdesk-hbbs.service
+systemctl daemon-reload
+systemctl enable rustdesk-hbbs.service
+systemctl start rustdesk-hbbs.service
 
 # Setup systemd to launch hbbr
-if [ ! -f "/etc/systemd/system/rustdesk-hbbr.service" ]
+if [ -f "/etc/systemd/system/rustdesk-hbbr.service" ]
 then
+    systemctl stop rustdesk-hbbs.service
     rm -f "/etc/systemd/system/rustdesk-hbbr.service"
-    rm -f "/etc/systemd/system/rustdesk-hbbr.service"
+    systemctl daemon-reload
     touch "/etc/systemd/system/rustdesk-hbbr.service"
     cat << HBBR_RUSTDESK_SERVICE > "/etc/systemd/system/rustdesk-hbbr.service"
 [Unit]
@@ -227,99 +275,130 @@ Description=RustDesk Relay Server
 Type=simple
 LimitNOFILE=1000000
 ExecStart=/usr/bin/hbbr
-WorkingDirectory="$RUSTDESK_INSTALL_DIR"
-User="${usern}"
-Group="${usern}"
+WorkingDirectory=$RUSTDESK_INSTALL_DIR
+User=${usern}
+Group=${usern}
 Restart=always
-StandardOutput=append:"$RUSTDESK_LOG_DIR"/hbbr.log
-StandardError=append:"$RUSTDESK_LOG_DIR"/hbbr.error
+StandardOutput=append:$RUSTDESK_LOG_DIR/hbbr.log
+StandardError=append:$RUSTDESK_LOG_DIR/hbbr.error
 # Restart service after 10 seconds if node service crashes
 RestartSec=10
 [Install]
 WantedBy=multi-user.target
 HBBR_RUSTDESK_SERVICE
 fi
-sudo systemctl daemon-reload
-sudo systemctl enable rustdesk-hbbr.service
-sudo systemctl start rustdesk-hbbr.service
+systemctl daemon-reload
+systemctl enable rustdesk-hbbr.service
+systemctl start rustdesk-hbbr.service
 
-while ! [[ $CHECK_RUSTDESK_READY ]]
+while :
 do
-    CHECK_RUSTDESK_READY=$(sudo systemctl status rustdesk-hbbr.service | grep "Active: active (running)")
-    echo -ne "Waiting for RustDesk Relay service${NC}\n"
-    sleep 2
+    if ! systemctl status rustdesk-hbbr.service | grep "Active: active (running)"
+    then
+        sleep 2
+        print_text_in_color "$ICyan" "Waiting for RustDesk Relay service to become active..."
+    else
+        break
+    fi
 done
 
-pubname=$(find "$RUSTDESK_INSTALL_DIR" -name "*.pub")
-key=$(cat "${pubname}")
+while :
+do
+    PUBKEYNAME=$(find "$RUSTDESK_INSTALL_DIR" -name "*.pub")
+    if [ -z "$PUBKEYNAME" ]
+    then
+        print_text_in_color "$ICyan" "Checking if public key is generated..."
+        sleep 5
+    else
+        print_text_in_color "$IGreen" "Pubilc key path: $PUBKEYNAME"
+        PUBLICKEY=$(cat "$PUBKEYNAME")
+        break
+    fi
+done
 
 echo "Tidying up install"
 rm -f rustdesk-server-linux-"${ACTUAL_TAR_NAME}".zip
 rm -rf "${ACTUAL_TAR_NAME}"
 
-# Choice for DNS or IP
-PS3='Choose your preferred option, IP or DNS/Domain:'
-WAN=("IP" "DNS/Domain")
-select WANOPT in "${WAN[@]}"; do
-case $WANOPT in
-"IP")
-wanip=$(dig @resolver4.opendns.com myip.opendns.com +short)
-sudo ufw allow 21114/tcp
 
-sudo ufw enable && ufw reload
-break
-;;
 
-"DNS/Domain")
-echo -ne "Enter your preferred domain/DNS address ${NC}: "
-read -r wanip
-# Check wanip is valid domain
-if ! [[ $wanip =~ ^[a-zA-Z0-9]+([a-zA-Z0-9.-]*[a-zA-Z0-9]+)?$ ]]
-then
-    echo -e "${RED}Invalid domain/DNS address${NC}"
-    exit 1
-fi
+choice=$(whiptail --title "Rustdesk installation script" --menu \
+"Choose your preferred option, IP or DNS/Domain:
 
-print_text_in_color "$IGreen" "Installing Nginx"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
-then
-    if yesno_box_yes "We use Certbot to generate the free TLS certificate from Let's Encrypt.
+DNS = Setup Rustdesk with TLS and your own domain
+IP  = You don't have a domain, only plain IP
+$MENU_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
+"DNS" "(e.g. rustdesk.example.com)" \
+"IP" "($WANIP4)" 3>&1 1>&2 2>&3)
+
+case "$choice" in
+    "DNS")
+        # Enter domain
+        while :
+        do
+            RUSTDESK_DOMAIN=$(input_box_flow "Please enter your domain, e.g. rustdesk.example.com")
+            DIG=$(dig +short "${RUSTDESK_DOMAIN}" @resolver1.opendns.com)
+            if ! [[ "$RUSTDESK_DOMAIN" =~ ^[a-zA-Z0-9]+([a-zA-Z0-9.-]*[a-zA-Z0-9]+)?$ ]]
+            then
+                msg_box "$RUSTDESK_DOMAIN is an invalid domain/DNS address! Please try again."
+            else
+                break
+            fi
+        done
+
+        # Check if DNS are forwarded correctly
+        if dig +short "$RUSTDESK_DOMAIN" @resolver1.opendns.com | grep -q "$WANIP4"
+        then
+            print_text_in_color "$IGreen" "DNS seems correct when checking with dig!"
+        else
+        msg_box "DNS lookup failed with dig. The external IP ($WANIP4) \
+address of this server is not the same as the A-record ($DIG).
+Please check your DNS settings! Maybe the domain hasn't propagated?
+Please check https://www.whatsmydns.net/#A/${RUSTDESK_DOMAIN} if the IP seems correct."
+            exit 1
+        fi
+
+
+        print_text_in_color "$IGreen" "Installing Nginx"
+        if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
+        then
+            if yesno_box_yes "We use Certbot to generate the free TLS certificate from Let's Encrypt.
 The default behaviour of installing Certbot is to use the snap package which auto updates, and provides the latest version of Certbot. If you don't like snap packages, you can opt out now and we'll use regular (old) deb packages instead.
 
 Do you want to install Certbot with snap? (recommended)"
-    then
-        sudo apt-get install nginx -y
-        sudo apt-get install snapd -y
-        sudo snap install certbot --classic
-    else
-        sudo apt-get install nginx -y
-        sudo apt-get install python3-certbot-nginx -y
-    fi
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
-then
-# openSUSE 15.4 fails to run the relay service and hangs waiting for it
-# Needs more work before it can be enabled
-# || [ "${UPSTREAM_ID}" = "suse" ]
-    sudo yum -y install nginx
-    sudo yum -y install python3-certbot-nginx
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
-then
-    sudo pacman -S install nginx
-    sudo pacman -S install python3-certbot-nginx
-else
-    print_text_in_color "$IRed" "Unsupported OS"
-    # Here you could ask the user for permission to try and install anyway
-    # If they say yes, then do the install
-    # If they say no, exit the script
-    exit 1
-fi
+            then
+                apt-get install nginx -y
+                apt-get install snapd -y
+                snap install certbot --classic
+            else
+                apt-get install nginx -y
+                apt-get install python3-certbot-nginx -y
+            fi
+        elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
+        then
+            # openSUSE 15.4 fails to run the relay service and hangs waiting for it
+            # Needs more work before it can be enabled
+            # || [ "${UPSTREAM_ID}" = "suse" ]
+            yum -y install nginx
+            yum -y install python3-certbot-nginx
+        elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
+        then
+           pacman -S install nginx
+           pacman -S install python3-certbot-nginx
+        else
+           msg_box "Sorry, your OS is unsupported"
+            if ! yesno_box_no "It might work anyway though... Do you want to continue anyway?"
+            then
+                exit 1
+            fi
+        fi
 
-if [ ! -f "/etc/nginx/sites-available/rustdesk.conf" ]
-then
-    rm -f "/etc/nginx/sites-available/rustdesk.conf"
-    rm -f "/etc/nginx/sites-enabled/rustdesk.conf"
-    touch "/etc/nginx/sites-available/rustdesk.conf"
-    cat << NGINX_RUSTDESK_CONF > "/etc/nginx/sites-available/rustdesk.conf"
+        if [ ! -f "/etc/nginx/sites-available/rustdesk.conf" ]
+        then
+            rm -f "/etc/nginx/sites-available/rustdesk.conf"
+            rm -f "/etc/nginx/sites-enabled/rustdesk.conf"
+            touch "/etc/nginx/sites-available/rustdesk.conf"
+            cat << NGINX_RUSTDESK_CONF > "/etc/nginx/sites-available/rustdesk.conf"
 server {
   server_name ${wanip};
       location / {
@@ -329,41 +408,59 @@ server {
       }
 }
 NGINX_RUSTDESK_CONF
-fi
+        fi
 
-# Remove the default Nginx configs
-sudo rm -f /etc/nginx/sites-available/default
-sudo rm -f /etc/nginx/sites-enabled/default
+        # Remove the default Nginx configs
+        rm -f /etc/nginx/sites-available/default
+        rm -f /etc/nginx/sites-enabled/default
 
-# Enable the Nginx config file
-if [ ! -f /etc/nginx/sites-enabled/rustdesk.conf ]
-then
-    sudo ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rustdesk.conf
-fi
+        # Enable the Nginx config file
+        if [ ! -f /etc/nginx/sites-enabled/rustdesk.conf ]
+        then
+            ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rustdesk.conf
+        fi
 
-# Enable firewall rules for the domain
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw enable
-sudo ufw reload
+        # Enable firewall rules for the domain
+        ufw allow 80/tcp
+        ufw allow 443/tcp
+        ufw enable
+        ufw reload
 
-# Generate the certifictae
-if ! sudo certbot --nginx --cert-name "${wanip}" --key-type ecdsa --renew-by-default --no-eff-email --agree-tos --server https://acme-v02.api.letsencrypt.org/directory -d "${wanip}"
-then
-    msg_box "Sorry, the TLS certificate for $wanip failed to generate!
+        # Generate the certifictae
+        if ! certbot --nginx --cert-name "${wanip}" --key-type ecdsa --renew-by-default --no-eff-email --agree-tos --server https://acme-v02.api.letsencrypt.org/directory -d "${wanip}"
+        then
+            msg_box "Sorry, the TLS certificate for $wanip failed to generate!
 Please check that port 80/443 are correctly port forwarded, and that the DNS record points to this servers IP.
 
 Please try again."
-    exit
-fi
-
-break
-;;
-*) print_text_in_color "$IRed" "Invalid option $REPLY";;
+            exit
+        fi
+    ;;
+    "IP")
+        ufw allow 21114/tcp
+        ufw enable
+        ufw reload
+    ;;
+    *)
+    ;;
 esac
-done
 
-print_text_in_color "$IGreen" "Your IP/DNS Address is:"
-print_text_in_color "$ICyan" "$wanip"
-print_text_in_color "$IGreen" "Your public key is:"
-print_text_in_color "$ICyan" "$key"
+# Display final info!
+if [ -n "$RUSTDESK_DOMAIN" ]
+then
+    msg_box "Your Public Key is:
+$PUBLICKEY
+
+Your DNS Address is:
+$RUSTDESK_DOMAIN
+
+Please login at https://$RUSTDESK_DOMAIN"
+else
+    msg_box "Your Public Key is:
+$PUBLICKEY
+
+Your IP Address is:
+$WANIP4
+
+Please login at http://$WANIP4"
+fi
