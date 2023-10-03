@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
+
+# shellcheck disable=2034,2059,2164
+true
+
 usern=$(whoami)
 path=$(pwd)
-echo $path
+echo "$path"
 
 ARCH=$(uname -m)
 
@@ -16,7 +20,7 @@ if [ -f /etc/os-release ]; then
 
     # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
     if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]; then
-        UPSTREAM_ID="$(echo ${ID_LIKE,,} | sed s/\"//g | cut -d' ' -f1)"
+        UPSTREAM_ID="$(echo "${ID_LIKE,,}" | sed s/\"//g | cut -d' ' -f1)"
     fi
 
 elif type lsb_release >/dev/null 2>&1; then
@@ -105,7 +109,7 @@ if [[ $* == *--schedule* ]]; then
     if [ ! -d /opt/rustdesk-server-backups/monthly ]; then
         sudo mkdir /opt/rustdesk-server-backups/monthly
     fi
-    sudo chown ${usern}:${usern} -R /opt/rustdesk-server-backups
+    sudo chown "${usern}":"${usern}" -R /opt/rustdesk-server-backups
 
     printf >&2 "Backups setup to run at midnight and rotate."
     exit 0
@@ -113,15 +117,15 @@ fi
 
 if [ ! -d /opt/rustdesk-server-backups ]; then
     sudo mkdir /opt/rustdesk-server-backups
-    sudo chown ${usern}:${usern} /opt/rustdesk-server-backups
+    sudo chown "${usern}":"${usern}" /opt/rustdesk-server-backups
 fi
 
 dt_now=$(date '+%Y_%m_%d__%H_%M_%S')
 tmp_dir=$(mktemp -d -t rustdesk-XXXXXXXXXXXXXXXXXXXXX)
 sysd="/etc/systemd/system"
 
-cp -rf /var/lib/rustdesk-server/ ${tmp_dir}/
-sqlite3 /var/lib/rustdesk-server/db.sqlite3 .dump > ${tmp_dir}/db_backup_file.sql
+cp -rf /var/lib/rustdesk-server/ "${tmp_dir}"/
+sqlite3 /var/lib/rustdesk-server/db.sqlite3 .dump > "${tmp_dir}"/db_backup_file.sql
 
 if [[ $* == *--auto* ]]; then
 
@@ -129,16 +133,16 @@ if [[ $* == *--auto* ]]; then
     week_day=$(date +"%u")
 
     if [ "$month_day" -eq 10 ]; then
-        tar -cf /opt/rustdesk-server-backups/monthly/rustdesk-backup-${dt_now}.tar -C ${tmp_dir} .
+        tar -cf /opt/rustdesk-server-backups/monthly/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
     else
         if [ "$week_day" -eq 5 ]; then
-            tar -cf /opt/rustdesk-server-backups/weekly/rustdesk-backup-${dt_now}.tar -C ${tmp_dir} .
+            tar -cf /opt/rustdesk-server-backups/weekly/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
         else
-            tar -cf /opt/rustdesk-server-backups/daily/rustdesk-backup-${dt_now}.tar -C ${tmp_dir} .
+            tar -cf /opt/rustdesk-server-backups/daily/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
         fi
     fi
 
-    rm -rf ${tmp_dir}
+    rm -rf "${tmp_dir}"
 
     find /opt/rustdesk-server-backups/daily/ -type f -mtime +14 -name '*.tar' -execdir rm -- '{}' \;
     find /opt/rustdesk-server-backups/weekly/ -type f -mtime +60 -name '*.tar' -execdir rm -- '{}' \;
@@ -147,7 +151,7 @@ if [[ $* == *--auto* ]]; then
     exit
 
 else
-    tar -cf /opt/rustdesk-server-backups/rustdesk-backup-${dt_now}.tar -C ${tmp_dir} .
-    rm -rf ${tmp_dir}
+    tar -cf /opt/rustdesk-server-backups/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
+    rm -rf "${tmp_dir}"
     echo -ne "Backup saved to /opt/rustdesk-server-backups/rustdesk-backup-${dt_now}.tar"
 fi
