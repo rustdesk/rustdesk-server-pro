@@ -18,6 +18,8 @@ then
     echo "Failed to download the lib.sh file. Please try again"
 fi
 
+# shellcheck disable=2034,2059
+true
 # shellcheck source=lib.sh
 source /tmp/lib.sh
 
@@ -87,8 +89,10 @@ else
     VER=$(uname -r)
 fi
 
+# shellcheck disable=2034,2059
+true
 # shellcheck source=lib.sh
-source ./lib.sh
+source /tmp/lib.sh
 
 # Select user for installation
 msg_box "Rustdesk needs to be installed as root, but you can still do some parts as an unprivileged user.
@@ -360,7 +364,7 @@ Please check https://www.whatsmydns.net/#A/${RUSTDESK_DOMAIN} if the IP seems co
         if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
         then
             if yesno_box_yes "We use Certbot to generate the free TLS certificate from Let's Encrypt.
-The default behaviour of installing Certbot is to use the snap package which auto updates, and provides the latest version of Certbot. If you don't like snap packages, you can opt out now and we'll use regular (old) deb packages instead.
+The default behavior of installing Certbot is to use the snap package which auto updates, and provides the latest version of Certbot. If you don't like snap packages, you can opt out now and we'll use regular (old) deb packages instead.
 
 Do you want to install Certbot with snap? (recommended)"
             then
