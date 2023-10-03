@@ -208,7 +208,13 @@ This might be temporary, so please try to run the installation script again."
         # Extract, move in place, and make it executable
         tar -xf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
         chown -R "$RUSTDESK_USER":"$RUSTDESK_USER" "$RUSTDESK_INSTALL_DIR"
-        run_as_non_root_user mv "${ACTUAL_TAR_NAME}"/static "$RUSTDESK_INSTALL_DIR"
+        # Move as root if RUSTDESK_USER is not set.
+        if [ -n $RUSTDESK_USER ]
+        then
+            run_as_non_root_user mv "${ACTUAL_TAR_NAME}"/static "$RUSTDESK_INSTALL_DIR"
+        else
+            mv "${ACTUAL_TAR_NAME}"/static "$RUSTDESK_INSTALL_DIR"
+        fi
         mv "${ACTUAL_TAR_NAME}"/hbbr /usr/bin/
         mv "${ACTUAL_TAR_NAME}"/hbbs /usr/bin/
         rm -rf "$RUSTDESK_INSTALL_DIR"/"${ACTUAL_TAR_NAME:?}"
