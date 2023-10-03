@@ -95,7 +95,7 @@ source ./lib.sh
 
 # Select user for installation
 msg_box "Rustdesk needs to be installed as root, but you can still do some parts as an unprivileged user.
-Running with an unprivileged user enhances security, and is recomended."
+Running with an unprivileged user enhances security, and is recommended."
 
 if yesno_box_yes "Do you want to use an unprivileged user where it's possible?"
 then
