@@ -19,7 +19,7 @@ then
     echo "Sorry, you are not root. You now have two options:"
     echo
     echo "1. Use SUDO directly:"
-    echo "a) :~$ sudo bash install.sh"
+    echo "   a) :~$ sudo bash install.sh"
     echo
     echo "2. Become ROOT and then type your command:"
     echo "   a) :~$ sudo -i"
