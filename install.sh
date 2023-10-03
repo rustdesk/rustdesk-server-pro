@@ -435,7 +435,7 @@ Do you want to install Certbot with snap? (recommended)"
            pacman -S install python3-certbot-nginx
         else
            msg_box "Sorry, your OS is unsupported"
-            if ! yesno_box_no "It might work anyway though... Do you want to continue anyway?"
+            if ! yesno_box_no "It might work anyway though... Do you want to give it a shot?"
             then
                 exit 1
             fi
