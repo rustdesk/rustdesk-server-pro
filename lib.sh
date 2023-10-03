@@ -1,8 +1,13 @@
 #!/bin/bash
 
-# shellcheck disable=SC2034
-true
-# see https://github.com/koalaman/shellcheck/wiki/Directive
+############ Variables
+
+RUSTDESK_INSTALL_DIR=/var/lib/rustdesk-server
+RUSTDESK_LOG_DIR=/var/log/rustdesk-server
+
+WANIP4=$(curl -s -k -m 5 -4 https://api64.ipify.org)
+
+############ Functions
 
 print_text_in_color() {
 printf "%b%s%b\n" "$1" "$2" "$Color_Off"
@@ -22,6 +27,41 @@ yesno_box_yes() {
         return 1
     fi
 }
+
+yesno_box_no() {
+    [ -n "$2" ] && local SUBTITLE=" - $2"
+    if (whiptail --title "$TITLE$SUBTITLE" --defaultno --yesno "$1" "$WT_HEIGHT" "$WT_WIDTH" 3>&1 1>&2 2>&3)
+    then
+        return 0
+    else
+        return 1
+    fi
+}
+
+input_box() {
+    [ -n "$2" ] && local SUBTITLE=" - $2"
+    local RESULT && RESULT=$(whiptail --title "$TITLE$SUBTITLE" --nocancel --inputbox "$1" "$WT_HEIGHT" "$WT_WIDTH" 3>&1 1>&2 2>&3)
+    echo "$RESULT"
+}
+
+input_box_flow() {
+    local RESULT
+    while :
+    do
+        RESULT=$(input_box "$1" "$2")
+        if [ -z "$RESULT" ]
+        then
+            msg_box "Input is empty, please try again." "$2"
+        elif ! yesno_box_yes "Is this correct? $RESULT" "$2"
+        then
+            msg_box "OK, please try again." "$2"
+        else
+            break
+        fi
+    done
+    echo "$RESULT"
+}
+
 
 ## bash colors
 # Reset
