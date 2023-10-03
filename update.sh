@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# shellcheck disable=2034,2059,2164
+true
+
 # Get username
 usern=$(whoami) # not used btw ... yet
 
