@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# shellcheck disable=2034,2059,2164
+true
+
 usern=$(whoami)
 path=$(pwd)
 echo $path
