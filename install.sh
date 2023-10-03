@@ -16,9 +16,10 @@ true
 if ! curl -fSL --retry 3 https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o /tmp/lib.sh
 then
     echo "Failed to download the lib.sh file. Please try again"
+    exit 1
 fi
 
-# shellcheck disable=2034,2059
+# shellcheck disable=2034,2059,2164
 true
 # shellcheck source=lib.sh
 source /tmp/lib.sh
@@ -89,7 +90,7 @@ else
     VER=$(uname -r)
 fi
 
-# shellcheck disable=2034,2059
+# shellcheck disable=2034,2059,2164
 true
 # shellcheck source=lib.sh
 source /tmp/lib.sh
@@ -207,7 +208,7 @@ This might be temporary, so please try to run the installation script again."
         # Set permissions
         if [ -n "$RUSTDESK_USER" ]
         then
-            chown "$RUSTDESK_USER" -R "$RUSTDESK_INSTALL_DIR"
+            chown "$RUSTDESK_USER":"$RUSTDESK_USER" -R "$RUSTDESK_INSTALL_DIR"
         fi
         # Move as root if RUSTDESK_USER is not set.
         if [ -n "$RUSTDESK_USER" ]
@@ -222,6 +223,11 @@ This might be temporary, so please try to run the installation script again."
         rm -rf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
         chmod +x /usr/bin/hbbs
         chmod +x /usr/bin/hbbr
+        if [ -n "$RUSTDESK_USER" ]
+        then
+            chown "$RUSTDESK_USER":"$RUSTDESK_USER" -R /usr/bin/hbbr
+            chown "$RUSTDESK_USER":"$RUSTDESK_USER" -R /usr/bin/hbbr
+        fi
     else
         print_text_in_color "$IGreen" "Rustdesk server already installed."
     fi
@@ -239,7 +245,7 @@ then
     # Set permissions
     if [ -n "$RUSTDESK_USER" ]
     then
-         chown -R "$RUSTDESK_USER" "$RUSTDESK_LOG_DIR"
+         chown -R "$RUSTDESK_USER":"$RUSTDESK_USER" "$RUSTDESK_LOG_DIR"
     fi
 fi
 
@@ -250,6 +256,8 @@ then
     rm -f "/etc/systemd/system/rustdesk-hbbs.service"
     systemctl daemon-reload
     touch "/etc/systemd/system/rustdesk-hbbs.service"
+    if [ -n "$RUSTDESK_USER" ]
+    then
     cat << HBBS_RUSTDESK_SERVICE > "/etc/systemd/system/rustdesk-hbbs.service"
 [Unit]
 Description=RustDesk Signal Server
@@ -258,8 +266,8 @@ Type=simple
 LimitNOFILE=1000000
 ExecStart=/usr/bin/hbbs
 WorkingDirectory=$RUSTDESK_INSTALL_DIR
-User=${usern}
-Group=${usern}
+User=${RUSTDESK_USER}
+Group=${RUSTDESK_USER}
 Restart=always
 StandardOutput=append:$RUSTDESK_LOG_DIR/hbbs.log
 StandardError=append:$RUSTDESK_LOG_DIR/hbbs.error
@@ -268,6 +276,26 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 HBBS_RUSTDESK_SERVICE
+else
+    cat << HBBS_RUSTDESK_SERVICE > "/etc/systemd/system/rustdesk-hbbs.service"
+[Unit]
+Description=RustDesk Signal Server
+[Service]
+Type=simple
+LimitNOFILE=1000000
+ExecStart=/usr/bin/hbbs
+WorkingDirectory=$RUSTDESK_INSTALL_DIR
+User=root
+Group=root
+Restart=always
+StandardOutput=append:$RUSTDESK_LOG_DIR/hbbs.log
+StandardError=append:$RUSTDESK_LOG_DIR/hbbs.error
+# Restart service after 10 seconds if node service crashes
+RestartSec=10
+[Install]
+WantedBy=multi-user.target
+HBBS_RUSTDESK_SERVICE
+    fi
 fi
 systemctl daemon-reload
 systemctl enable rustdesk-hbbs.service
@@ -280,6 +308,8 @@ then
     rm -f "/etc/systemd/system/rustdesk-hbbr.service"
     systemctl daemon-reload
     touch "/etc/systemd/system/rustdesk-hbbr.service"
+    if [ -n "$RUSTDESK_USER" ]
+    then
     cat << HBBR_RUSTDESK_SERVICE > "/etc/systemd/system/rustdesk-hbbr.service"
 [Unit]
 Description=RustDesk Relay Server
@@ -288,8 +318,8 @@ Type=simple
 LimitNOFILE=1000000
 ExecStart=/usr/bin/hbbr
 WorkingDirectory=$RUSTDESK_INSTALL_DIR
-User=${usern}
-Group=${usern}
+User=${RUSTDESK_USER}
+Group=${RUSTDESK_USER}
 Restart=always
 StandardOutput=append:$RUSTDESK_LOG_DIR/hbbr.log
 StandardError=append:$RUSTDESK_LOG_DIR/hbbr.error
@@ -298,6 +328,26 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 HBBR_RUSTDESK_SERVICE
+else
+    cat << HBBR_RUSTDESK_SERVICE > "/etc/systemd/system/rustdesk-hbbr.service"
+[Unit]
+Description=RustDesk Relay Server
+[Service]
+Type=simple
+LimitNOFILE=1000000
+ExecStart=/usr/bin/hbbr
+WorkingDirectory=$RUSTDESK_INSTALL_DIR
+User=root
+Group=root
+Restart=always
+StandardOutput=append:$RUSTDESK_LOG_DIR/hbbr.log
+StandardError=append:$RUSTDESK_LOG_DIR/hbbr.error
+# Restart service after 10 seconds if node service crashes
+RestartSec=10
+[Install]
+WantedBy=multi-user.target
+HBBR_RUSTDESK_SERVICE
+    fi
 fi
 systemctl daemon-reload
 systemctl enable rustdesk-hbbr.service
@@ -460,17 +510,17 @@ esac
 # Display final info!
 if [ -n "$RUSTDESK_DOMAIN" ]
 then
-    msg_box "Your Public Key is:
+    msg_box "
+Your Public Key is:
 $PUBLICKEY
-
 Your DNS Address is:
 $RUSTDESK_DOMAIN
 
 Please login at https://$RUSTDESK_DOMAIN"
 else
-    msg_box "Your Public Key is:
+    msg_box "
+Your Public Key is:
 $PUBLICKEY
-
 Your IP Address is:
 $WANIP4
 
