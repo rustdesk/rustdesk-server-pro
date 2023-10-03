@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# shellcheck disable=SC2034
+true
+# see https://github.com/koalaman/shellcheck/wiki/Directive
+
 ############ Variables
 
 RUSTDESK_INSTALL_DIR=/var/lib/rustdesk-server
