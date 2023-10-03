@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# TEEEEEEEST
-sudo rm -Rf /usr/bin/hbbr /usr/bin/hbbs /var/log/rustdesk-server /var/lib/rustdesk-server
-
 # shellcheck disable=SC2034
 true
 # see https://github.com/koalaman/shellcheck/wiki/Directive
@@ -400,7 +397,7 @@ Do you want to install Certbot with snap? (recommended)"
             touch "/etc/nginx/sites-available/rustdesk.conf"
             cat << NGINX_RUSTDESK_CONF > "/etc/nginx/sites-available/rustdesk.conf"
 server {
-  server_name ${wanip};
+  server_name ${RUSTDESK_DOMAIN};
       location / {
            proxy_set_header        X-Real-IP       \$remote_addr;
            proxy_set_header        X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -427,9 +424,9 @@ NGINX_RUSTDESK_CONF
         ufw reload
 
         # Generate the certifictae
-        if ! certbot --nginx --cert-name "${wanip}" --key-type ecdsa --renew-by-default --no-eff-email --agree-tos --server https://acme-v02.api.letsencrypt.org/directory -d "${wanip}"
+        if ! certbot --nginx --cert-name "${RUSTDESK_DOMAIN}" --key-type ecdsa --renew-by-default --no-eff-email --agree-tos --server https://acme-v02.api.letsencrypt.org/directory -d "${RUSTDESK_DOMAIN}"
         then
-            msg_box "Sorry, the TLS certificate for $wanip failed to generate!
+            msg_box "Sorry, the TLS certificate for $RUSTDESK_DOMAIN failed to generate!
 Please check that port 80/443 are correctly port forwarded, and that the DNS record points to this servers IP.
 
 Please try again."
