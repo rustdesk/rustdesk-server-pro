@@ -9,6 +9,9 @@
 # 6. Create systemd services for hbbs and hbbr
 # 7. If you choose Domain, it will install Nginx and Certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, it is automatically renewed
 
+# shellcheck disable=2034,2059,2164
+true
+
 # Get username
 usern=$(whoami)
 admintoken=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c16)
