@@ -5,7 +5,7 @@ true
 
 usern=$(whoami)
 path=$(pwd)
-echo $path
+echo "$path"
 
 # Check for /var/lib/rustdesk-server/
 if [ -d "/var/lib/rustdesk-server" ]; then
@@ -19,14 +19,14 @@ ARCH=$(uname -m)
 # Identify OS
 if [ -f /etc/os-release ]; then
     # freedesktop.org and systemd
-    . /etc/os-release
+    source /etc/os-release
     OS=$NAME
     VER=$VERSION_ID
     UPSTREAM_ID=${ID_LIKE,,}
 
     # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
     if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]; then
-        UPSTREAM_ID="$(echo ${ID_LIKE,,} | sed s/\"//g | cut -d' ' -f1)"
+        UPSTREAM_ID="$(echo "${ID_LIKE,,}" | sed s/\"//g | cut -d' ' -f1)"
     fi
 
 elif type lsb_release >/dev/null 2>&1; then
@@ -35,7 +35,7 @@ elif type lsb_release >/dev/null 2>&1; then
     VER=$(lsb_release -sr)
 elif [ -f /etc/lsb-release ]; then
     # For some versions of Debian/Ubuntu without lsb_release command
-    . /etc/lsb-release
+    source /etc/lsb-release
     OS=$DISTRIB_ID
     VER=$DISTRIB_RELEASE
 elif [ -f /etc/debian_version ]; then
@@ -75,17 +75,17 @@ PREREQARCH="bind sqlite"
 echo "Installing prerequisites"
 if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
     sudo apt-get update
-    sudo apt-get install -y ${PREREQ} ${PREREQDEB} # git
+    sudo apt-get install -y "${PREREQ}" "${PREREQDEB}" # git
 elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ] ; then
 # openSUSE 15.4 fails to run the relay service and hangs waiting for it
 # Needs more work before it can be enabled
 # || [ "${UPSTREAM_ID}" = "suse" ]
     sudo yum update -y
     sudo dnf install -y epel-release
-    sudo yum install -y ${PREREQ} ${PREREQRPM} # git
+    sudo yum install -y "${PREREQ}" "${PREREQRPM}" # git
 elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]; then
     sudo pacman -Syu
-    sudo pacman -S ${PREREQ} ${PREREQARCH}
+    sudo pacman -S "${PREREQ}" "${PREREQARCH}"
 else
     echo "Unsupported OS"
     # Here you could ask the user for permission to try and install anyway
@@ -96,12 +96,12 @@ fi
 
 tmp_dir=$(mktemp -d -t)
 
-tar -xf $path/*.tar -C $tmp_dir
+tar -xf "$path"/*.tar -C "$tmp_dir"
 
-cp -rf ${tmp_dir}/rustdesk-server/ /var/lib/
-sudo chown ${usern}:${usern} -R /var/lib/rustdesk-server/
+cp -rf "${tmp_dir}"/rustdesk-server/ /var/lib/
+sudo chown "${usern}":"${usern}" -R /var/lib/rustdesk-server/
 rm /var/lib/rustdesk-server/db.sqlite3
-sqlite3 /var/lib/rustdesk-server/db.sqlite3 < ${tmp_dir}/db_backup_file.sql
+sqlite3 /var/lib/rustdesk-server/db.sqlite3 < "${tmp_dir}"/db_backup_file.sql
 
 # Get current release version
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }' | sed 's/-.*//')
@@ -111,7 +111,7 @@ rm -rf static/
 
 echo "Installing RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
-wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-amd64.tar.gz
+wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/"${RDLATEST}"/rustdesk-server-linux-amd64.tar.gz
 tar -xf rustdesk-server-linux-amd64.tar.gz
 mv amd64/static /var/lib/rustdesk-server/
 sudo mv amd64/hbbr /usr/bin/
@@ -217,7 +217,7 @@ rm rustdesk-server-linux-arm64v8.tar.gz
 rm -rf arm64v8
 fi
 
-rm -rf ${tmp_dir}/
+rm -rf "${tmp_dir:?}"/
 
 # Choice for DNS or IP
 PS3='Choose your preferred option, IP or DNS/Domain:'
@@ -284,7 +284,7 @@ sudo ufw allow 443/tcp
 
 sudo ufw enable && ufw reload
 
-sudo certbot --nginx -d ${wanip}
+sudo certbot --nginx -d "${wanip}"
 
 break
 ;;
