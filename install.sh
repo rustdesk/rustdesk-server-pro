@@ -503,6 +503,7 @@ Your DNS Address is:
 $RUSTDESK_DOMAIN
 
 Please login at https://$RUSTDESK_DOMAIN"
+Default User/Pass: admin/test1234
 else
     msg_box "
 Your Public Key is:
@@ -511,6 +512,7 @@ Your IP Address is:
 $WANIP4
 
 Please login at http://$WANIP4:21114"
+Default User/Pass: admin/test1234
 fi
 
 print_text_in_color "$IGreen" "Cleaning up..."
