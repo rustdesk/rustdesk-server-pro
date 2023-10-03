@@ -210,7 +210,7 @@ This might be temporary, so please try to run the installation script again."
         run_as_non_root_user mv "${ACTUAL_TAR_NAME}"/static "$RUSTDESK_INSTALL_DIR"
         mv "${ACTUAL_TAR_NAME}"/hbbr /usr/bin/
         mv "${ACTUAL_TAR_NAME}"/hbbs /usr/bin/
-        rm -rf "$RUSTDESK_INSTALL_DIR"/"${ACTUAL_TAR_NAME}"/
+        rm -rf "$RUSTDESK_INSTALL_DIR"/"${ACTUAL_TAR_NAME:?}"
         rm -rf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
         chmod +x /usr/bin/hbbs
         chmod +x /usr/bin/hbbr
