@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# We need to source directly from the Github repo to be able to use the functions here
-# shellcheck disable=2034,2059,2164
-true
-SCRIPT_NAME="Install script"
-# shellcheck source=lib.sh
-source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh)
-# see https://github.com/koalaman/shellcheck/wiki/Directive
-
 # This script will do the following to install RustDesk Server Pro
 # 1. Install some dependencies
 # 2. Setup UFW firewall if available
@@ -18,12 +10,58 @@ source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro
 
 ##################################################################################################################
 
+# We need curl to fetch the lib
+# There are the package managers for different OS:
+# osInfo[/etc/redhat-release]=yum
+# osInfo[/etc/arch-release]=pacman
+# osInfo[/etc/gentoo-release]=emerge
+# osInfo[/etc/SuSE-release]=zypp
+# osInfo[/etc/debian_version]=apt-get
+# osInfo[/etc/alpine-release]=apk
+packagesNeeded='curl'
+if [ -x "$(command -v apt-get)" ]
+then
+    sudo apt-get install $packagesNeeded
+elif [ -x "$(command -v apk)" ]
+then
+    sudo apk add --no-cache $packagesNeeded
+elif [ -x "$(command -v dnf)" ]
+then
+    sudo dnf install $packagesNeeded
+elif [ -x "$(command -v zypper)" ]
+then
+    sudo zypper install $packagesNeeded
+elif [ -x "$(command -v pacman)" ]
+then
+    sudo pacman -S install $packagesNeeded
+elif [ -x "$(command -v yum)" ]
+then
+    sudo yum install $packagesNeeded
+elif [ -x "$(command -v emerge)" ]
+then
+    sudo emerge -av $packagesNeeded
+else
+    echo "FAILED TO INSTALL PACKAGE: Package manager not found. You must manually install: $packagesNeeded">&2
+fi
+
+# We need to source directly from the Github repo to be able to use the functions here
+# shellcheck disable=2034,2059,2164
+true
+SCRIPT_NAME="Install script"
+# shellcheck source=lib.sh
+source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh)
+# see https://github.com/koalaman/shellcheck/wiki/Directive
+
+##################################################################################################################
+
 # This must run as root
 root_check
 
+# We need the WAN IP
+get_wanip4
+
 # Install needed dependencies
 install_linux_package curl
-install_linux_package wget
 install_linux_package unzip
 install_linux_package tar
 install_linux_package whiptail
@@ -60,6 +98,7 @@ fi
 # Output debugging info if $DEBUG set
 if [ "$DEBUG" = "true" ]
 then
+    identify_os
     print_text_in_color "$ICyan" "OS: $OS"
     print_text_in_color "$ICyan" "VER: $VER"
     print_text_in_color "$ICyan" "UPSTREAM_ID: $UPSTREAM_ID"
