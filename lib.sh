@@ -37,9 +37,6 @@ then
    a) :~$ sudo -i
    b) :~# bash name-of-script.sh
 
-In both cases above you can leave out $SCRIPTS/ if the script
-is directly in your PATH.
-
 More information can be found here: https://unix.stackexchange.com/a/3064"
     exit 1
 fi
