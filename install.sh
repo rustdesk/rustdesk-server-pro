@@ -48,9 +48,11 @@ fi
 # shellcheck disable=2034,2059,2164
 true
 SCRIPT_NAME="Install script"
+export SCRIPT_NAME
 # shellcheck source=lib.sh
 source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh)
 # see https://github.com/koalaman/shellcheck/wiki/Directive
+unset SCRIPT_NAME
 
 ##################################################################################################################
 
