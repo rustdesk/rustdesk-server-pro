@@ -22,11 +22,11 @@ then
 fi
 
 # Download the lib file
-if ! curl -fSL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o lib.sh
-then
-    echo "Failed to download the lib.sh file. Please try again"
-    exit 1
-fi
+#if ! curl -fSL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o lib.sh
+#then
+#    echo "Failed to download the lib.sh file. Please try again"
+#    exit 1
+#fi
 
 # shellcheck disable=2034,2059,2164
 true
@@ -43,6 +43,15 @@ then
     exit 0
 fi
 
+
+# Switch for Certbot
+if [ -d /etc/letsencrypt ]
+then
+    CERTBOT_SWITCH=ON
+else
+    CERTBOT_SWITCH=OFF
+fi
+
 # Uninstall Rustdesk Menu
 choice=$(whiptail --title "$TITLE" --checklist \
 "What do you want to uninstall?
@@ -52,7 +61,6 @@ $CHECKLIST_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
 "nginxall" "(Removes *everything* releated to Nginx)" ON \
 "wget" "(Removes wget linux package)" ON \
 "unzip" "(Removes unzip linux package)" ON \
-"tar" "(Removes tar linux package)" ON \
 "whiptail" "(Removes whiptail linux package)" ON \
 "dnsutils" "(Removes dnsutils linux package)" ON \
 "bind-utils" "(Removes bind-utils linux package)" ON \
@@ -60,11 +68,11 @@ $CHECKLIST_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
 "UFW" "(Removes UFW linux package plus rules)" ON \
 "Rustdesk LOGs" "(Removes RustDesk log dir)" ON \
 "Rustdesk Server" "(Removes Rustdesk server + services)" ON \
-"Certbot" "(Removes Certbot package plus Let's Encrypt)" ON 3>&1 1>&2 2>&3)
+"Certbot" "(Removes Certbot package plus Let's Encrypt)" "$CERTBOT_SWITCH" 3>&1 1>&2 2>&3)
 
 case "$choice" in
     *"curl"*)
-        REMOVECURL="yes"
+        REMOVE_CURL="yes"
     ;;&
     *"nginxconf"*)
         REMOVE_NGINX_CONF="yes"
@@ -77,9 +85,6 @@ case "$choice" in
     ;;&
     *"unzip"*)
         REMOVE_UNZIP="yes"
-    ;;&
-    *"tar"*)
-        REMOVE_TAR="yes"
     ;;&
     *"whiptail"*)
         REMOVE_WHIPTAIL="yes"
@@ -207,16 +212,6 @@ then
     purge_linux_package unzip
 fi
 
-if [ -n "$REMOVE_TAR" ]
-then
-    purge_linux_package tar
-fi
-
-if [ -n "$REMOVE_WHIPTAIL" ]
-then
-    purge_linux_package whiptail
-fi
-
 if [ -n "$REMOVE_DNSUTILS" ]
 then
     purge_linux_package dnsutils
@@ -241,4 +236,8 @@ msg_box "Uninstallation complete!
 
 Please hit OK to remove the last file."
 
+if [ -n "$REMOVE_WHIPTAIL" ]
+then
+    purge_linux_package whiptail
+fi
 rm -f lib.sh
