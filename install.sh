@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# shellcheck disable=SC2034
+# shellcheck disable=2034,2059,2164
 true
 # see https://github.com/koalaman/shellcheck/wiki/Directive
 
@@ -12,34 +12,22 @@ true
 # 5. Create systemd services for hbbs and hbbr
 # 6. If you choose Domain, it will install Nginx and Certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, it is automatically renewed
 
-# Download the lib file
-if ! curl -fSL --retry 3 https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o /tmp/lib.sh
-then
-    echo "Failed to download the lib.sh file. Please try again"
-    exit 1
-fi
-
-# shellcheck disable=2034,2059,2164
-true
-# shellcheck source=lib.sh
-source /tmp/lib.sh
+##################################################################################################################
 
 if [[ "$EUID" -ne 0 ]]
 then
-    msg_box "Sorry, you are not root. You now have two options:
-
-1. Use SUDO directly:
-   a) :~$ sudo bash install.sh
-
-2. Become ROOT and then type your command:
-   a) :~$ sudo -i
-   b) :~# bash install.sh
-
-More information can be found here: https://unix.stackexchange.com/a/3064"
+    echo "Sorry, you are not root. You now have two options:"
+    echo
+    echo "1. Use SUDO directly:"
+    echo "   a) :~$ sudo bash install.sh"
+    echo
+    echo "2. Become ROOT and then type your command:"
+    echo "   a) :~$ sudo -i"
+    echo "   b) :~# bash install.sh"
+    echo
+    echo "More information can be found here: https://unix.stackexchange.com/a/3064"
     exit 1
 fi
-
-ARCH=$(uname -m)
 
 # Identify OS
 if [ -f /etc/os-release ]
@@ -90,10 +78,48 @@ else
     VER=$(uname -r)
 fi
 
+# Setup prereqs for server
+# Common named prereqs
+PREREQ=(curl wget unzip tar whiptail)
+PREREQDEB=(dnsutils ufw)
+PREREQRPM=(bind-utils)
+PREREQARCH=(bind)
+
+echo "Installing prerequisites"
+if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
+then
+    apt-get update
+    apt-get install -y "${PREREQ[@]}" "${PREREQDEB[@]}"
+elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
+then
+# openSUSE 15.4 fails to run the relay service and hangs waiting for it
+# Needs more work before it can be enabled
+# || [ "${UPSTREAM_ID}" = "suse" ]
+    yum update -y
+    yum install -y "${PREREQ[@]}" "${PREREQRPM[@]}" # git
+elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
+then
+    pacman -Syu
+    pacman -S "${PREREQ[@]}" "${PREREQARCH[@]}"
+else
+    echo "Unsupported OS!"
+    # Here you could ask the user for permission to try and install anyway
+    # If they say yes, then do the install
+    # If they say no, exit the script
+    exit 1
+fi
+
+# Download the lib file
+if ! curl -fSL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o lib.sh
+then
+    echo "Failed to download the lib.sh file. Please try again"
+    exit 1
+fi
+
 # shellcheck disable=2034,2059,2164
 true
 # shellcheck source=lib.sh
-source /tmp/lib.sh
+source lib.sh
 
 # Select user for installation
 msg_box "Rustdesk needs to be installed as root, but you can still do some parts as an unprivileged user.
@@ -116,6 +142,8 @@ Please try again."
     run_as_non_root_user() {
         sudo -u "$RUSTDESK_USER" "$@";
     }
+
+   chown "$RUSTDESK_USER":"$RUSTDESK_USER" lib.sh
 fi
 
 # Output debugging info if $DEBUG set
@@ -127,42 +155,10 @@ then
     exit 0
 fi
 
-# Setup prereqs for server
-# Common named prereqs
-PREREQ=(curl wget unzip tar whiptail)
-PREREQDEB=(dnsutils ufw)
-PREREQRPM=(bind-utils)
-PREREQARCH=(bind)
-
-print_text_in_color "$IGreen" "Installing prerequisites"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
-then
-    apt-get update
-    apt-get install -y "${PREREQ[@]}" "${PREREQDEB[@]}" # git
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
-then
-# openSUSE 15.4 fails to run the relay service and hangs waiting for it
-# Needs more work before it can be enabled
-# || [ "${UPSTREAM_ID}" = "suse" ]
-    yum update -y
-    yum install -y "${PREREQ[@]}" "${PREREQRPM[@]}" # git
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
-then
-    pacman -Syu
-    pacman -S "${PREREQ[@]}" "${PREREQARCH[@]}"
-else
-    print_text_in_color "$IRed" "Unsupported OS"
-    # Here you could ask the user for permission to try and install anyway
-    # If they say yes, then do the install
-    # If they say no, exit the script
-    exit 1
-fi
-
 # Setting up firewall
 ufw allow 21115:21119/tcp
 ufw allow 22/tcp
 ufw allow 21116/udp
-ufw enable
 
 # Download latest version of RustDesk
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }')
@@ -250,11 +246,8 @@ then
 fi
 
 # Setup systemd to launch hbbs
-if [ -f "/etc/systemd/system/rustdesk-hbbs.service" ]
+if [ ! -f "/etc/systemd/system/rustdesk-hbbs.service" ]
 then
-    systemctl stop rustdesk-hbbs.service
-    rm -f "/etc/systemd/system/rustdesk-hbbs.service"
-    systemctl daemon-reload
     touch "/etc/systemd/system/rustdesk-hbbs.service"
     if [ -n "$RUSTDESK_USER" ]
     then
@@ -297,16 +290,10 @@ WantedBy=multi-user.target
 HBBS_RUSTDESK_SERVICE
     fi
 fi
-systemctl daemon-reload
-systemctl enable rustdesk-hbbs.service
-systemctl start rustdesk-hbbs.service
 
 # Setup systemd to launch hbbr
-if [ -f "/etc/systemd/system/rustdesk-hbbr.service" ]
+if [ ! -f "/etc/systemd/system/rustdesk-hbbr.service" ]
 then
-    systemctl stop rustdesk-hbbs.service
-    rm -f "/etc/systemd/system/rustdesk-hbbr.service"
-    systemctl daemon-reload
     touch "/etc/systemd/system/rustdesk-hbbr.service"
     if [ -n "$RUSTDESK_USER" ]
     then
@@ -349,9 +336,14 @@ WantedBy=multi-user.target
 HBBR_RUSTDESK_SERVICE
     fi
 fi
-systemctl daemon-reload
+
+# Enable services
+# HBBR
 systemctl enable rustdesk-hbbr.service
 systemctl start rustdesk-hbbr.service
+# HBBS
+systemctl enable rustdesk-hbbs.service
+systemctl start rustdesk-hbbs.service
 
 while :
 do
@@ -372,17 +364,11 @@ do
         print_text_in_color "$ICyan" "Checking if public key is generated..."
         sleep 5
     else
-        print_text_in_color "$IGreen" "Pubilc key path: $PUBKEYNAME"
+        print_text_in_color "$IGreen" "Public key path: $PUBKEYNAME"
         PUBLICKEY=$(cat "$PUBKEYNAME")
         break
     fi
 done
-
-echo "Tidying up install"
-rm -f rustdesk-server-linux-"${ACTUAL_TAR_NAME}".zip
-rm -rf "${ACTUAL_TAR_NAME}"
-
-
 
 choice=$(whiptail --title "Rustdesk installation script" --menu \
 "Choose your preferred option, IP or DNS/Domain:
@@ -449,7 +435,7 @@ Do you want to install Certbot with snap? (recommended)"
            pacman -S install python3-certbot-nginx
         else
            msg_box "Sorry, your OS is unsupported"
-            if ! yesno_box_no "It might work anyway though... Do you want to continue anyway?"
+            if ! yesno_box_no "It might work anyway though... Do you want to give it a shot?"
             then
                 exit 1
             fi
@@ -517,6 +503,7 @@ Your DNS Address is:
 $RUSTDESK_DOMAIN
 
 Please login at https://$RUSTDESK_DOMAIN"
+Default User/Pass: admin/test1234
 else
     msg_box "
 Your Public Key is:
@@ -524,5 +511,11 @@ $PUBLICKEY
 Your IP Address is:
 $WANIP4
 
-Please login at http://$WANIP4"
+Please login at http://$WANIP4:21114"
+Default User/Pass: admin/test1234
 fi
+
+print_text_in_color "$IGreen" "Cleaning up..."
+rm -f rustdesk-server-linux-"${ACTUAL_TAR_NAME}".zip
+rm -rf "${ACTUAL_TAR_NAME}"
+rm -f lib.sh
