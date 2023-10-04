@@ -18,30 +18,29 @@
 # osInfo[/etc/SuSE-release]=zypp
 # osInfo[/etc/debian_version]=apt-get
 # osInfo[/etc/alpine-release]=apk
-packagesNeeded='curl'
 if [ -x "$(command -v apt-get)" ]
 then
-    sudo apt-get install $packagesNeeded
+    sudo apt-get install curl
 elif [ -x "$(command -v apk)" ]
 then
-    sudo apk add --no-cache $packagesNeeded
+    sudo apk add --no-cache curl
 elif [ -x "$(command -v dnf)" ]
 then
-    sudo dnf install $packagesNeeded
+    sudo dnf install curl
 elif [ -x "$(command -v zypper)" ]
 then
-    sudo zypper install $packagesNeeded
+    sudo zypper install curl
 elif [ -x "$(command -v pacman)" ]
 then
-    sudo pacman -S install $packagesNeeded
+    sudo pacman -S install curl
 elif [ -x "$(command -v yum)" ]
 then
-    sudo yum install $packagesNeeded
+    sudo yum install curl
 elif [ -x "$(command -v emerge)" ]
 then
-    sudo emerge -av $packagesNeeded
+    sudo emerge -av curl
 else
-    echo "FAILED TO INSTALL PACKAGE! Package manager not found. You must manually install: $packagesNeeded">&2
+    echo "FAILED TO INSTALL PACKAGE! Package manager not found. You must manually install: curl"
 fi
 
 # We need to source directly from the Github repo to be able to use the functions here
@@ -361,23 +360,24 @@ Please check https://www.whatsmydns.net/#A/${RUSTDESK_DOMAIN} if the IP seems co
             exit 1
         fi
 
+        # Install packages
         print_text_in_color "$IGreen" "Installing Nginx and Cerbot..."
         if yesno_box_yes "We use Certbot to generate the free TLS certificate from Let's Encrypt.
 The default behavior of installing Certbot is to use the snap package which auto updates, and provides the latest version of Certbot. If you don't like snap packages, you can opt out now and we'll use regular (old) deb packages instead.
 
 Do you want to install Certbot with snap? (recommended)"
+        then
+            install_linux_package nginx
+            if ! install_linux_package snapd
             then
-                install_linux_package nginx
-                if ! install_linux_package snapd
-                    print_text_in_color "$IRed" "Sorry, snapd wasn't found on your system, reverting to python-certbot."
-                    install_linux_package python3-certbot-nginx
-                else
-                    snap install certbot --classic
-                fi
-            else
-                install_linux_package nginx
+                print_text_in_color "$IRed" "Sorry, snapd wasn't found on your system, reverting to python-certbot."
                 install_linux_package python3-certbot-nginx
+            else
+                snap install certbot --classic
             fi
+        else
+            install_linux_package nginx
+            install_linux_package python3-certbot-nginx
         fi
 
         # Add Nginx config
