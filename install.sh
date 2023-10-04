@@ -68,10 +68,13 @@ install_linux_package unzip
 install_linux_package tar
 install_linux_package dnsutils
 install_linux_package ufw
-install_linux_package bind
-if ! install_linux_package bind-utils
+if ! install_linux_package bind9-utils
 then
-    install_linux_package bind9
+    install_linux_package bind-utils
+fi
+if ! install_linux_package bind9
+then
+    install_linux_package bind
 fi
 
 # Select user for installation
