@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# shellcheck disable=2034,2059,2164
-true
-# see https://github.com/koalaman/shellcheck/wiki/Directive
-
 ##################################################################################################################
 
 if [[ "$EUID" -ne 0 ]]
@@ -30,6 +26,7 @@ fi
 
 # shellcheck disable=2034,2059,2164
 true
+SCRIPT_NAME="Uninstall Script"
 # shellcheck source=lib.sh
 source lib.sh
 
