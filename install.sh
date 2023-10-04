@@ -18,30 +18,32 @@
 # osInfo[/etc/SuSE-release]=zypp
 # osInfo[/etc/debian_version]=apt-get
 # osInfo[/etc/alpine-release]=apk
+NEEDED_DEPS=(curl whiptail)
 if [ -x "$(command -v apt-get)" ]
 then
-    sudo apt-get install curl
+    sudo apt-get install "${NEEDED_DEPS[@]}" -y
 elif [ -x "$(command -v apk)" ]
 then
-    sudo apk add --no-cache curl
+    sudo apk add --no-cache "${NEEDED_DEPS[@]}"
 elif [ -x "$(command -v dnf)" ]
 then
-    sudo dnf install curl
+    sudo dnf install "${NEEDED_DEPS[@]}"
 elif [ -x "$(command -v zypper)" ]
 then
-    sudo zypper install curl
+    sudo zypper install "${NEEDED_DEPS[@]}"
 elif [ -x "$(command -v pacman)" ]
 then
-    sudo pacman -S install curl
+    sudo pacman -S install "${NEEDED_DEPS[@]}"
 elif [ -x "$(command -v yum)" ]
 then
-    sudo yum install curl
+    sudo yum install "${NEEDED_DEPS[@]}"
 elif [ -x "$(command -v emerge)" ]
 then
-    sudo emerge -av curl
+    sudo emerge -av "${NEEDED_DEPS[@]}"
 else
-    echo "FAILED TO INSTALL PACKAGE! Package manager not found. You must manually install: curl"
+    echo "FAILED TO INSTALL PACKAGE! Package manager not found. You must manually install: ${NEEDED_DEPS[@]}"
 fi
+
 
 # We need to source directly from the Github repo to be able to use the functions here
 # shellcheck disable=2034,2059,2164
@@ -62,10 +64,8 @@ root_check
 get_wanip4
 
 # Install needed dependencies
-install_linux_package curl
 install_linux_package unzip
 install_linux_package tar
-install_linux_package whiptail
 install_linux_package dnsutils
 install_linux_package ufw
 install_linux_package bind
