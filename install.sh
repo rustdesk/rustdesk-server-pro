@@ -3,7 +3,7 @@
 # This script will do the following to install RustDesk Server Pro
 # 1. Install some dependencies
 # 2. Setup UFW firewall if available
-# 3. Create 2 folders /var/lib/rustdesk-server and /var/log/rustdesk-server ("$RUSTDESK_LOG_DIR")
+# 3. Create 2 folders /var/lib/rustdesk-server and /var/log/rustdesk-server ("$RUSTDESK_INSTALL_DIR" and "$RUSTDESK_LOG_DIR")
 # 4. Download and extract RustDesk Pro Services to the above folder
 # 5. Create systemd services for hbbs and hbbr
 # 6. If you choose Domain, it will install Nginx and Certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, it is automatically renewed
@@ -41,7 +41,7 @@ elif [ -x "$(command -v emerge)" ]
 then
     sudo emerge -av $packagesNeeded
 else
-    echo "FAILED TO INSTALL PACKAGE: Package manager not found. You must manually install: $packagesNeeded">&2
+    echo "FAILED TO INSTALL PACKAGE! Package manager not found. You must manually install: $packagesNeeded">&2
 fi
 
 # We need to source directly from the Github repo to be able to use the functions here
@@ -69,8 +69,11 @@ install_linux_package tar
 install_linux_package whiptail
 install_linux_package dnsutils
 install_linux_package ufw
-install_linux_package bind-utils
 install_linux_package bind
+if ! install_linux_package bind-utils
+then
+    install_linux_package bind9
+fi
 
 # Select user for installation
 msg_box "Rustdesk can be installed as an unprivileged user, but we need root for everything else.
@@ -358,41 +361,26 @@ Please check https://www.whatsmydns.net/#A/${RUSTDESK_DOMAIN} if the IP seems co
             exit 1
         fi
 
-
-        print_text_in_color "$IGreen" "Installing Nginx"
-        if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
-        then
-            if yesno_box_yes "We use Certbot to generate the free TLS certificate from Let's Encrypt.
+        print_text_in_color "$IGreen" "Installing Nginx and Cerbot..."
+        if yesno_box_yes "We use Certbot to generate the free TLS certificate from Let's Encrypt.
 The default behavior of installing Certbot is to use the snap package which auto updates, and provides the latest version of Certbot. If you don't like snap packages, you can opt out now and we'll use regular (old) deb packages instead.
 
 Do you want to install Certbot with snap? (recommended)"
             then
-                apt-get install nginx -y
-                apt-get install snapd -y
-                snap install certbot --classic
+                install_linux_package nginx
+                if ! install_linux_package snapd
+                    print_text_in_color "$IRed" "Sorry, snapd wasn't found on your system, reverting to python-certbot."
+                    install_linux_package python3-certbot-nginx
+                else
+                    snap install certbot --classic
+                fi
             else
-                apt-get install nginx -y
-                apt-get install python3-certbot-nginx -y
-            fi
-        elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
-        then
-            # openSUSE 15.4 fails to run the relay service and hangs waiting for it
-            # Needs more work before it can be enabled
-            # || [ "${UPSTREAM_ID}" = "suse" ]
-            yum -y install nginx
-            yum -y install python3-certbot-nginx
-        elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
-        then
-           pacman -S install nginx
-           pacman -S install python3-certbot-nginx
-        else
-           msg_box "Sorry, your OS is unsupported"
-            if ! yesno_box_no "It might work anyway though... Do you want to give it a shot?"
-            then
-                exit 1
+                install_linux_package nginx
+                install_linux_package python3-certbot-nginx
             fi
         fi
 
+        # Add Nginx config
         if [ ! -f "/etc/nginx/sites-available/rustdesk.conf" ]
         then
             rm -f "/etc/nginx/sites-available/rustdesk.conf"
@@ -470,4 +458,3 @@ fi
 print_text_in_color "$IGreen" "Cleaning up..."
 rm -f rustdesk-server-linux-"${ACTUAL_TAR_NAME}".zip
 rm -rf "${ACTUAL_TAR_NAME}"
-rm -f lib.sh
