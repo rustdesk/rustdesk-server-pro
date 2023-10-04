@@ -27,6 +27,8 @@ Please try again."
     run_as_non_root_user() {
         sudo -u "$RUSTDESK_USER" "$@";
     }
+else
+    root_check
 fi
 
 
@@ -35,16 +37,16 @@ RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releas
 RDCURRENT=$(/usr/bin/hbbr --version | sed -r 's/hbbr (.*)/\1/')
 
 if [ $RDLATEST == $RDCURRENT ]; then
-    echo "Same version, no need to update."
+    msg_box "Same version, no need to update."
     exit 0
 fi
 
 # Stop services
 # HBBS
-systemctl stop rustdesk-hbbs.service
+sudo systemctl stop rustdesk-hbbs.service
 # HBBR
-systemctl stop rustdesk-hbbr.service
-sleep 20
+sudo systemctl stop rustdesk-hbbr.service
+sleep 10
 
 # Output debugging info if $DEBUG set
 if [ "$DEBUG" = "true" ]
@@ -58,18 +60,18 @@ fi
 
 if [ ! -d $RUSTDESK_INSTALL_DIR ]
 then
-    echo "No directory /var/lib/rustdesk-server/ found. No update of RustDesk possible (use install.sh script?)"
+    msg_box "$RUSTDESK_INSTALL_DIR not found. No update of RustDesk possible (use install.sh script?)"
     exit 4
+else
+    cd $RUSTDESK_INSTALL_DIR
+    rm -rf $RUSTDESK_INSTALL_DIR/static
 fi
-
-cd $RUSTDESK_INSTALL_DIR
-rm -rf $RUSTDESK_INSTALL_DIR/static
 
 # Download, extract, and move Rustdesk in place
 if [ -n "${ARCH}" ]
 then
     # If not /var/lib/rustdesk-server/ ($RUSTDESK_INSTALL_DIR) exists we can assume this is a fresh install. If it exists though, we can't move it and it will produce an error
-    if [ ! -d "$RUSTDESK_INSTALL_DIR" ]
+    if [ ! -d "$RUSTDESK_INSTALL_DIR/static" ]
     then
         print_text_in_color "$IGreen" "Installing RustDesk Server..."
         # Create dir
