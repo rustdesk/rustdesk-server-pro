@@ -22,11 +22,11 @@ then
 fi
 
 # Download the lib file
-#if ! curl -fSL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o lib.sh
-#then
-#    echo "Failed to download the lib.sh file. Please try again"
-#    exit 1
-#fi
+if ! curl -fSL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o lib.sh
+then
+    echo "Failed to download the lib.sh file. Please try again"
+    exit 1
+fi
 
 # shellcheck disable=2034,2059,2164
 true
