@@ -41,7 +41,8 @@ elif [ -x "$(command -v emerge)" ]
 then
     sudo emerge -av "${NEEDED_DEPS[@]}"
 else
-    echo "FAILED TO INSTALL PACKAGE! Package manager not found. You must manually install: ${NEEDED_DEPS[@]}"
+    echo "FAILED TO INSTALL PACKAGE! Package manager not found. You must manually install:" "${NEEDED_DEPS[@]}"
+    exit 1
 fi
 
 
