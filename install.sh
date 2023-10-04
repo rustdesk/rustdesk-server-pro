@@ -1,7 +1,11 @@
 #!/bin/bash
 
+# We need to source directly from the Github repo to be able to use the functions here
 # shellcheck disable=2034,2059,2164
 true
+SCRIPT_NAME="Install script"
+# shellcheck source=lib.sh
+source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh)
 # see https://github.com/koalaman/shellcheck/wiki/Directive
 
 # This script will do the following to install RustDesk Server Pro
@@ -14,118 +18,25 @@ true
 
 ##################################################################################################################
 
-if [[ "$EUID" -ne 0 ]]
-then
-    echo "Sorry, you are not root. You now have two options:"
-    echo
-    echo "1. Use SUDO directly:"
-    echo "   a) :~$ sudo bash install.sh"
-    echo
-    echo "2. Become ROOT and then type your command:"
-    echo "   a) :~$ sudo -i"
-    echo "   b) :~# bash install.sh"
-    echo
-    echo "More information can be found here: https://unix.stackexchange.com/a/3064"
-    exit 1
-fi
+# This must run as root
+root_check
 
-# Identify OS
-if [ -f /etc/os-release ]
-then
-    # freedesktop.org and systemd
-    # shellcheck source=/dev/null
-    source /etc/os-release
-    OS=$NAME
-    VER=$VERSION_ID
-    UPSTREAM_ID=${ID_LIKE,,}
-
-    # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
-    if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]
-    then
-        UPSTREAM_ID="$(echo "${ID_LIKE,,}" | sed s/\"//g | cut -d' ' -f1)"
-    fi
-
-elif type lsb_release >/dev/null 2>&1
-then
-    # linuxbase.org
-    OS=$(lsb_release -si)
-    VER=$(lsb_release -sr)
-elif [ -f /etc/lsb-release ]
-then
-    # For some versions of Debian/Ubuntu without lsb_release command
-    # shellcheck source=/dev/null
-    source /etc/os-release
-    OS=$DISTRIB_ID
-    VER=$DISTRIB_RELEASE
-elif [ -f /etc/debian_version ]
-then
-    # Older Debian, Ubuntu, etc.
-    OS=Debian
-    VER=$(cat /etc/debian_version)
-elif [ -f /etc/SuSE-release ]
-then
-    # Older SuSE, etc.
-    OS=SuSE
-    VER=$(cat /etc/SuSE-release)
-elif [ -f /etc/redhat-release ]
-then
-    # Older Red Hat, CentOS, etc.
-    OS=RedHat
-    VER=$(cat /etc/redhat-release)
-else
-    # Fall back to uname, e.g. "Linux <version>", also works for BSD, etc.
-    OS=$(uname -s)
-    VER=$(uname -r)
-fi
-
-# Setup prereqs for server
-# Common named prereqs
-PREREQ=(curl wget unzip tar whiptail)
-PREREQDEB=(dnsutils ufw)
-PREREQRPM=(bind-utils)
-PREREQARCH=(bind)
-
-echo "Installing prerequisites"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
-then
-    apt-get update
-    apt-get install -y "${PREREQ[@]}" "${PREREQDEB[@]}"
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
-then
-# openSUSE 15.4 fails to run the relay service and hangs waiting for it
-# Needs more work before it can be enabled
-# || [ "${UPSTREAM_ID}" = "suse" ]
-    yum update -y
-    yum install -y "${PREREQ[@]}" "${PREREQRPM[@]}" # git
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
-then
-    pacman -Syu
-    pacman -S "${PREREQ[@]}" "${PREREQARCH[@]}"
-else
-    echo "Unsupported OS!"
-    # Here you could ask the user for permission to try and install anyway
-    # If they say yes, then do the install
-    # If they say no, exit the script
-    exit 1
-fi
-
-# Download the lib file
-if ! curl -fSL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o lib.sh
-then
-    echo "Failed to download the lib.sh file. Please try again"
-    exit 1
-fi
-
-# shellcheck disable=2034,2059,2164
-true
-# shellcheck source=lib.sh
-source lib.sh
+# Install needed dependencies
+install_linux_package curl
+install_linux_package wget
+install_linux_package unzip
+install_linux_package tar
+install_linux_package whiptail
+install_linux_package dnsutils
+install_linux_package ufw
+install_linux_package bind-utils
+install_linux_package bind
 
 # Select user for installation
-msg_box "Rustdesk needs to be installed as root, but you can still do some parts as an unprivileged user.
+msg_box "Rustdesk can be installed as an unprivileged user, but we need root for everything else.
 Running with an unprivileged user enhances security, and is recommended."
 
-if yesno_box_yes "Do you want to use an unprivileged user where it's possible?"
+if yesno_box_yes "Do you want to use an unprivileged user for Rustdesk?"
 then
     while :
     do
