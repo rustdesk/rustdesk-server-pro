@@ -124,47 +124,66 @@ else
 fi
 }
 
-purge_linux_package() {
-    # Identify which OS it is
-    if [ -z "${ID}" ] || [ -z "$OS" ] || [ -z "${UPSTREAM_ID}" ]
-    then
-        identify_os
-    fi
-    # Purge based on OS
-    if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
-    then
-        apt-get purge "${1}" -y
-        apt-get autoremove -y
-    elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
-    then
-        yum remove "${1}" -y
-    elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
-    then
-        pacman -Rs "${1}"
-    fi
-}
-
 install_linux_package() {
-    # Identify which OS it is
-    if [ -z "${ID}" ] || [ -z "$OS" ] || [ -z "${UPSTREAM_ID}" ]
-    then
-        identify_os
-    fi
-
     # Install based on OS
-    if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
+    # osInfo[/etc/redhat-release]=yum
+    # osInfo[/etc/arch-release]=pacman
+    # osInfo[/etc/gentoo-release]=emerge
+    # osInfo[/etc/SuSE-release]=zypp
+    # osInfo[/etc/debian_version]=apt-get
+    # osInfo[/etc/alpine-release]=apk
+    if [ -x "$(command -v apt-get)" ]
     then
-        apt-get install "${1}" -y
-    elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
+        sudo apt-get install "${1}"
+    elif [ -x "$(command -v apk)" ]
     then
-        yum install "${1}" -y
-    elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
+        sudo apk add --no-cache "${1}"
+    elif [ -x "$(command -v dnf)" ]
     then
-        pacman -S install "${1}"
+        sudo dnf install "${1}"
+    elif [ -x "$(command -v zypper)" ]
+    then
+        sudo zypper install "${1}"
+    elif [ -x "$(command -v pacman)" ]
+    then
+        sudo pacman -S install "${1}"
+    elif [ -x "$(command -v yum)" ]
+    then
+        sudo yum install "${1}"
+    elif [ -x "$(command -v emerge)" ]
+    then
+        sudo emerge -av "${1}"
+    else
+        echo "FAILED TO INSTALL ${1}! Package manager not found: Your OS is currently unsupported."
     fi
 }
 
-
+purge_linux_package() {
+    if [ -x "$(command -v apt-get)" ]
+    then
+        sudo apt-get purge --autoremove -y "${1}"
+    elif [ -x "$(command -v apk)" ]
+    then
+        sudo apk del "${1}"
+    elif [ -x "$(command -v dnf)" ]
+    then
+        sudo dnf purge "${1}"
+    elif [ -x "$(command -v zypper)" ]
+    then
+        sudo zypper remove "${1}"
+    elif [ -x "$(command -v pacman)" ]
+    then
+        sudo pacman -Rs "${1}"
+    elif [ -x "$(command -v yum)" ]
+    then
+        sudo yum remove "${1}"
+    elif [ -x "$(command -v emerge)" ]
+    then
+        sudo emerge -Cv "${1}"
+    else
+        echo "FAILED TO REMOVE ${1}! Package manager not found: Your OS is currently unsupported."
+    fi
+}
 
 ## bash colors
 # Reset
