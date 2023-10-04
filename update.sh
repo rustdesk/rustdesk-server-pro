@@ -36,7 +36,7 @@ fi
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }')
 RDCURRENT=$(/usr/bin/hbbr --version | sed -r 's/hbbr (.*)/\1/')
 
-if [ $RDLATEST == $RDCURRENT ]; then
+if [ "$RDLATEST" == "$RDCURRENT" ]; then
     msg_box "Same version, no need to update."
     exit 0
 fi
@@ -58,13 +58,13 @@ then
     exit 0
 fi
 
-if [ ! -d $RUSTDESK_INSTALL_DIR ]
+if [ ! -d "$RUSTDESK_INSTALL_DIR" ]
 then
     msg_box "$RUSTDESK_INSTALL_DIR not found. No update of RustDesk possible (use install.sh script?)"
     exit 4
 else
-    cd $RUSTDESK_INSTALL_DIR
-    rm -rf $RUSTDESK_INSTALL_DIR/static
+    cd "$RUSTDESK_INSTALL_DIR"
+    rm -rf "$RUSTDESK_INSTALL_DIR"/static
 fi
 
 # Download, extract, and move Rustdesk in place
