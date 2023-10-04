@@ -21,77 +21,6 @@ then
     exit 1
 fi
 
-# Identify OS
-if [ -f /etc/os-release ]
-then
-    # freedesktop.org and systemd
-    # shellcheck source=/dev/null
-    source /etc/os-release
-    OS=$NAME
-    VER=$VERSION_ID
-    UPSTREAM_ID=${ID_LIKE,,}
-
-    # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
-    if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]
-    then
-        UPSTREAM_ID="$(echo "${ID_LIKE,,}" | sed s/\"//g | cut -d' ' -f1)"
-    fi
-
-elif type lsb_release >/dev/null 2>&1
-then
-    # linuxbase.org
-    OS=$(lsb_release -si)
-    VER=$(lsb_release -sr)
-elif [ -f /etc/lsb-release ]
-then
-    # For some versions of Debian/Ubuntu without lsb_release command
-    # shellcheck source=/dev/null
-    source /etc/os-release
-    OS=$DISTRIB_ID
-    VER=$DISTRIB_RELEASE
-elif [ -f /etc/debian_version ]
-then
-    # Older Debian, Ubuntu, etc.
-    OS=Debian
-    VER=$(cat /etc/debian_version)
-elif [ -f /etc/SuSE-release ]
-then
-    # Older SuSE, etc.
-    OS=SuSE
-    VER=$(cat /etc/SuSE-release)
-elif [ -f /etc/redhat-release ]
-then
-    # Older Red Hat, CentOS, etc.
-    OS=RedHat
-    VER=$(cat /etc/redhat-release)
-else
-    # Fall back to uname, e.g. "Linux <version>", also works for BSD, etc.
-    OS=$(uname -s)
-    VER=$(uname -r)
-fi
-
-# Setup prereqs for server
-# Common named prereqs
-PREREQ=(wget unzip tar whiptail)
-PREREQDEB=(dnsutils)
-PREREQRPM=(bind-utils)
-PREREQARCH=(bind)
-
-echo "Removing packages..."
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
-then
-    apt-get purge -y "${PREREQ[@]}" "${PREREQDEB[@]}"
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
-then
-# openSUSE 15.4 fails to run the relay service and hangs waiting for it
-# Needs more work before it can be enabled
-# || [ "${UPSTREAM_ID}" = "suse" ]
-    yum purge -y "${PREREQ[@]}" "${PREREQRPM[@]}" # git
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
-then
-    pacman -R "${PREREQ[@]}" "${PREREQARCH[@]}"
-fi
-
 # Download the lib file
 if ! curl -fSL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o lib.sh
 then
@@ -107,15 +36,79 @@ source lib.sh
 # Output debugging info if $DEBUG set
 if [ "$DEBUG" = "true" ]
 then
+    identify_os
     print_text_in_color "$ICyan" "OS: $OS"
     print_text_in_color "$ICyan" "VER: $VER"
     print_text_in_color "$ICyan" "UPSTREAM_ID: $UPSTREAM_ID"
     exit 0
 fi
 
+# Uninstall Rustdesk Menu
+choice=$(whiptail --title "$TITLE" --checklist \
+"What do you want to uninstall?
+$CHECKLIST_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
+"curl" "(Removes curl package)" OFF \
+"nginx" "(Removes nginx package + all configurations)" ON \
+"wget" "(Removes wget package)" ON \
+"unzip" "(Removes unzip package)" ON \
+"tar" "(Removes tar package)" ON \
+"whiptail" "(Removes whiptail package)" ON \
+"dnsutils" "(Removes dnsutils package)" ON \
+"bind-utils" "(Removes bind-utils package)" ON \
+"bind" "(Removes bind package)" ON \
+"UFW" "(Removes UFW package plus rules)" ON \
+"Rustdesk LOGs" "(Removes RustDesk log dir)" ON \
+"Rustdesk Server" "(Removes Rustdesk server + services)" ON \
+"Certbot" "(Removes Certbot package plus Let's Encrypt)" ON 3>&1 1>&2 2>&3)
+
+case "$choice" in
+    *"curl"*)
+        curl=yes
+    ;;&
+    *"nginx"*)
+        nginx=yes
+    ;;&
+    *"wget"*)
+        wget=yes
+    ;;&
+    *"unzip"*)
+        unzip=yes
+    ;;&
+    *"tar"*)
+        tar=yes
+    ;;&
+    *"whiptail"*)
+        whiptail=yes
+    ;;&
+    *"dnsutils"*)
+        dnsutils=yes
+    ;;&
+    *"bind-utils"*)
+        bind-utils=yes
+    ;;&
+    *"bind"*)
+        bind=yes
+    ;;&
+    *"UFW"*)
+        UFW=yes
+    ;;&
+    *"Rustdesk LOGs"*)
+        Rustdesk_LOGs=yes
+    ;;&
+    *"Rustdesk Server"*)
+        Rustdesk_Server=yes
+    ;;&
+    *"Certbot"*)
+        Certbot=yes
+    ;;&
+    *)
+    ;;
+esac
+exit
+
 msg_box "WARNING WARNING WARNING
 
-This script will remove EVERYTHING that was installed by the Rustdesk Linux installer.
+This script will remove EVERYTHING that was you chose in the previous selection.
 You can choose to opt out after you hit OK."
 
 if ! yesno_box_no "Are you REALLY sure you want to continue with the uninstallation?"
@@ -123,74 +116,122 @@ then
     exit 0
 fi
 
-# Deleting UFW rules
-ufw delete allow 21115:21119/tcp
-# ufw delete 22/tcp # If connected to a remote VPS, this deletion will make the connection go down
-ufw delete allow 21116/udp
-if [ -f "/etc/nginx/sites-available/rustdesk.conf" ]
+if [ -n "$UFW" ]
 then
-    ufw delete allow 80/tcp
-    ufw delete allow 443/tcp
-else
-    ufw delete allow 21114/tcp
+    # Deleting UFW rules
+    ufw delete allow 21115:21119/tcp
+    # ufw delete 22/tcp # If connected to a remote VPS, this deletion will make the connection go down
+    ufw delete allow 21116/udp
+    if [ -f "/etc/nginx/sites-available/rustdesk.conf" ]
+    then
+        ufw delete allow 80/tcp
+        ufw delete allow 443/tcp
+    else
+        ufw delete allow 21114/tcp
+    fi
+    ufw disable
+    ufw reload
 fi
-ufw disable
-ufw reload
 
-# Rustdesk installation dir
-print_text_in_color "$IGreen" "Removing RustDesk Server..."
-rm -rf "$RUSTDESK_INSTALL_DIR"
-rm -rf /usr/bin/hbbr
-rm -rf /usr/bin/hbbr
+# Rustdesk Server
+if [ -n "$Rustdesk_Server" ]
+then
+    # Rustdesk installation dir
+    print_text_in_color "$IGreen" "Removing RustDesk Server..."
+    rm -rf "$RUSTDESK_INSTALL_DIR"
+    rm -rf /usr/bin/hbbr
+    rm -rf /usr/bin/hbbr
 
-# Rustdesk LOG dir
-rm -rf "$RUSTDESK_LOG_DIR"
+    # systemctl services
+    # HBBS
+    systemctl disable rustdesk-hbbs.service
+    systemctl stop rustdesk-hbbs.service
+    rm -f "/etc/systemd/system/rustdesk-hbbs.service"
+    # HBBR
+    systemctl disable rustdesk-hbbr.service
+    systemctl stop rustdesk-hbbr.service
+    rm -f "/etc/systemd/system/rustdesk-hbbr.service"
+    # daemon-reload
+    systemctl daemon-reload
+fi
 
-# systemctl services
-# HBBS
-systemctl disable rustdesk-hbbs.service
-systemctl stop rustdesk-hbbs.service
-rm -f "/etc/systemd/system/rustdesk-hbbs.service"
-# HBBR
-systemctl disable rustdesk-hbbr.service
-systemctl stop rustdesk-hbbr.service
-rm -f "/etc/systemd/system/rustdesk-hbbr.service"
-# daemon-reload
-systemctl daemon-reload
+# Rustdesk LOG
+if [ -n "$Rustdesk_LOGs" ]
+then
+    # Rustdesk LOG dir
+    rm -rf "$RUSTDESK_LOG_DIR"
+fi
 
-# Certbot & NGINX
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
+# Certbot
+if [ -n "$Certbot" ]
 then
     if snap list | grep -q certbot > /dev/null
     then
-        apt-get purge snapd -y
+        purge_linux_package snap
         snap remove certbot
     else
-        apt-get purge nginx -y
-        apt-get purge python3-certbot-nginx -y
+        purge_linux_packagepython3-certbot-nginx -y
     fi
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
-then
-# openSUSE 15.4 fails to run the relay service and hangs waiting for it
-# Needs more work before it can be enabled
-# || [ "${UPSTREAM_ID}" = "suse" ]
-    yum -y purge nginx
-    yum -y purge python3-certbot-nginx
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
-then
-    pacman -S purge nginx
-    pacman -S purge python3-certbot-nginx
+    # Also remove the actual certs
+    rm -rf /etc/letsencrypt
 fi
-rm -f "/etc/nginx/sites-available/rustdesk.conf"
-rm -f "/etc/nginx/sites-enabled/rustdesk.conf"
-service nginx restart
 
-# Let's Encrypt
-rm -rf /etc/letsencrypt
+# Nginx
+if [ -n "$nginxconf" ]
+    rm -f "/etc/nginx/sites-available/rustdesk.conf"
+    rm -f "/etc/nginx/sites-enabled/rustdesk.conf"
+    service nginx restart
+elif [ -n "$nginxall" ]
+then
+    purge_linux_package nginx
+    rm -rf "/etc/nginx"
+fi
 
 # The rest
-apt-get purge curl ufw -y
-apt autoremove -y
+if [ -n "$curl" ]
+then
+    purge_linux_package curl
+fi
+
+if [ -n "$wget" ]
+then
+    purge_linux_package wget
+fi
+
+if [ -n "$unzip" ]
+then
+    purge_linux_package unzip
+fi
+
+if [ -n "$tar" ]
+then
+    purge_linux_package tar
+fi
+
+if [ -n "$whiptail" ]
+then
+    purge_linux_package whiptail
+fi
+
+if [ -n "$dnsutils" ]
+then
+    purge_linux_package dnsutils
+fi
+
+if [ -n "$bind-utils" ]
+then
+    purge_linux_package bind-utils
+fi
+
+if [ -n "$bind" ]
+then
+    purge_linux_package bind
+fi
+
+if [ -n "$UFW" ]
+then
+    purge_linux_package ufw
+fi
 
 msg_box "Uninstallation complete!
 
