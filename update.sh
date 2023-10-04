@@ -2,9 +2,33 @@
 
 # shellcheck disable=2034,2059,2164
 true
+SCRIPT_NAME="Install script"
+export SCRIPT_NAME
+# shellcheck source=lib.sh
+source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh)
+# see https://github.com/koalaman/shellcheck/wiki/Directive
+unset SCRIPT_NAME
 
-# Get username
-usern=$(whoami) # not used btw ... yet
+# Select user for update
+if yesno_box_yes "Did you install Rustdesk with a non-root user?"
+then
+    while :
+    do
+        RUSTDESK_USER=$(input_box_flow "Please enter the name of your non-root user:")
+        if ! id "$RUSTDESK_USER"
+        then
+            msg_box "We couldn't find $RUSTDESK_USER on the system, are you sure it's correct?
+Please try again."
+        else
+            break
+        fi
+    done
+
+    run_as_non_root_user() {
+        sudo -u "$RUSTDESK_USER" "$@";
+    }
+fi
+
 
 # Get current release version
 RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }')
@@ -15,110 +39,131 @@ if [ $RDLATEST == $RDCURRENT ]; then
     exit 0
 fi
 
-sudo systemctl stop rustdesk-hbbs.service
-sudo systemctl stop rustdesk-hbbr.service
+# Stop services
+# HBBS
+systemctl stop rustdesk-hbbs.service
+# HBBR
+systemctl stop rustdesk-hbbr.service
 sleep 20
 
-ARCH=$(uname -m)
-
-
-# Identify OS
-if [ -f /etc/os-release ]; then
-    # freedesktop.org and systemd
-    . /etc/os-release
-    OS=$NAME
-    VER=$VERSION_ID
-    UPSTREAM_ID=${ID_LIKE,,}
-
-    # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
-    if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]; then
-        UPSTREAM_ID="$(echo ${ID_LIKE,,} | sed s/\"//g | cut -d' ' -f1)"
-    fi
-
-elif type lsb_release >/dev/null 2>&1; then
-    # linuxbase.org
-    OS=$(lsb_release -si)
-    VER=$(lsb_release -sr)
-elif [ -f /etc/lsb-release ]; then
-    # For some versions of Debian/Ubuntu without lsb_release command
-    . /etc/lsb-release
-    OS=$DISTRIB_ID
-    VER=$DISTRIB_RELEASE
-elif [ -f /etc/debian_version ]; then
-    # Older Debian, Ubuntu, etc.
-    OS=Debian
-    VER=$(cat /etc/debian_version)
-elif [ -f /etc/SuSE-release ]; then
-    # Older SuSE, etc.
-    OS=SuSE
-    VER=$(cat /etc/SuSE-release)
-elif [ -f /etc/redhat-release ]; then
-    # Older Red Hat, CentOS, etc.
-    OS=RedHat
-    VER=$(cat /etc/redhat-release)
-else
-    # Fall back to uname, e.g. "Linux <version>", also works for BSD, etc.
-    OS=$(uname -s)
-    VER=$(uname -r)
-fi
-
-
 # Output debugging info if $DEBUG set
-if [ "$DEBUG" = "true" ]; then
+if [ "$DEBUG" = "true" ]
+then
+    identify_os
     echo "OS: $OS"
     echo "VER: $VER"
     echo "UPSTREAM_ID: $UPSTREAM_ID"
     exit 0
 fi
 
+if [ ! -d $RUSTDESK_INSTALL_DIR ]
+then
+    echo "No directory /var/lib/rustdesk-server/ found. No update of RustDesk possible (use install.sh script?)"
+    exit 4
+fi
 
-if ! [ -e /var/lib/rustdesk-server/ ]; then
-        echo "No directory /var/lib/rustdesk-server/ found. No update of RustDesk possible (use install.sh script?)"
-        exit 4
+cd $RUSTDESK_INSTALL_DIR
+rm -rf $RUSTDESK_INSTALL_DIR/static
+
+# Download, extract, and move Rustdesk in place
+if [ -n "${ARCH}" ]
+then
+    # If not /var/lib/rustdesk-server/ ($RUSTDESK_INSTALL_DIR) exists we can assume this is a fresh install. If it exists though, we can't move it and it will produce an error
+    if [ ! -d "$RUSTDESK_INSTALL_DIR" ]
+    then
+        print_text_in_color "$IGreen" "Installing RustDesk Server..."
+        # Create dir
+        mkdir -p "$RUSTDESK_INSTALL_DIR"
+        if [ -d "$RUSTDESK_INSTALL_DIR" ]
+        then
+            cd "$RUSTDESK_INSTALL_DIR"
+        else
+            msg_box "It seems like the installation folder wasn't created, we can't continue.
+Please report this to: https://github.com/rustdesk/rustdesk-server-pro/issues"
+            exit 1
+        fi
+        # Since the name of the actual tar files differs from the output of uname -m we need to rename acutal download file.
+        # Preferably we would instead rename the download tarballs to the output of uname -m. This would make it possible to run a single $VAR for ARCH.
+        if [ "${ARCH}" = "x86_64" ]
+        then
+            ACTUAL_TAR_NAME=amd64
+        elif [ "${ARCH}" = "armv7l" ]
+        then
+            ACTUAL_TAR_NAME=armv7
+        elif [ "${ARCH}" = "aarch64" ]
+        then
+            ACTUAL_TAR_NAME=arm64v8
+        fi
+        # Download
+        if ! curl -fSLO --retry 3 https://github.com/rustdesk/rustdesk-server-pro/releases/download/"${RDLATEST}"/rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
+        then
+            msg_box "Sorry, the installation package failed to download.
+This might be temporary, so please try to run the installation script again."
+            exit 1
+        fi
+        # Extract, move in place, and make it executable
+        tar -xf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
+        # Set permissions
+        if [ -n "$RUSTDESK_USER" ]
+        then
+            chown "$RUSTDESK_USER":"$RUSTDESK_USER" -R "$RUSTDESK_INSTALL_DIR"
+        fi
+        # Move as root if RUSTDESK_USER is not set.
+        if [ -n "$RUSTDESK_USER" ]
+        then
+            run_as_non_root_user mv "${ACTUAL_TAR_NAME}"/static "$RUSTDESK_INSTALL_DIR"
+        else
+            mv "${ACTUAL_TAR_NAME}"/static "$RUSTDESK_INSTALL_DIR"
+        fi
+        mv "${ACTUAL_TAR_NAME}"/hbbr /usr/bin/
+        mv "${ACTUAL_TAR_NAME}"/hbbs /usr/bin/
+        rm -rf "$RUSTDESK_INSTALL_DIR"/"${ACTUAL_TAR_NAME:?}"
+        rm -rf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
+        chmod +x /usr/bin/hbbs
+        chmod +x /usr/bin/hbbr
+        if [ -n "$RUSTDESK_USER" ]
+        then
+            chown "$RUSTDESK_USER":"$RUSTDESK_USER" -R /usr/bin/hbbr
+            chown "$RUSTDESK_USER":"$RUSTDESK_USER" -R /usr/bin/hbbr
+        fi
+    else
+        print_text_in_color "$IGreen" "Rustdesk server already installed."
+    fi
 else
-        :
+    msg_box "Sorry, we can't figure out your distro, this script will now exit.
+Please report this to: https://github.com/rustdesk/rustdesk-server-pro/issues"
+    exit 1
 fi
 
-cd /var/lib/rustdesk-server/
-rm -rf static/
-
-echo "Upgrading RustDesk Server"
-if [ "${ARCH}" = "x86_64" ] ; then
-wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-amd64.tar.gz
-tar -xf rustdesk-server-linux-amd64.tar.gz
-mv amd64/static /var/lib/rustdesk-server/
-sudo mv amd64/hbbr /usr/bin/
-sudo mv amd64/hbbs /usr/bin/
-rm -rf amd64/
-rm -rf rustdesk-server-linux-amd64.tar.gz
-elif [ "${ARCH}" = "armv7l" ] ; then
-wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.tar.gz"
-tar -xf rustdesk-server-linux-armv7.tar.gz
-mv armv7/static /var/lib/rustdesk-server/
-sudo mv armv7/hbbr /usr/bin/
-sudo mv armv7/hbbs /usr/bin/
-rm -rf armv7/
-rm -rf rustdesk-server-linux-armv7.tar.gz
-elif [ "${ARCH}" = "aarch64" ] ; then
-wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.tar.gz"
-tar -xf rustdesk-server-linux-arm64v8.tar.gz
-mv arm64v8/static /var/lib/rustdesk-server/
-sudo mv arm64v8/hbbr /usr/bin/
-sudo mv arm64v8/hbbs /usr/bin/
-rm -rf arm64v8/
-rm -rf rustdesk-server-linux-arm64v8.tar.gz
-fi
-
-sudo chmod +x /usr/bin/hbbs
-sudo chmod +x /usr/bin/hbbr
-
-sudo systemctl start rustdesk-hbbs.service
+# Start services
+# HBBR
 sudo systemctl start rustdesk-hbbr.service
+# HBBS
+sudo systemctl start rustdesk-hbbs.service
 
-while ! [[ $CHECK_RUSTDESK_READY ]]; do
-  CHECK_RUSTDESK_READY=$(sudo systemctl status rustdesk-hbbr.service | grep "Active: active (running)")
-  echo -ne "RustDesk Relay not ready yet...${NC}\n"
-  sleep 3
+while :
+do
+    if ! sudo systemctl status rustdesk-hbbr.service | grep "Active: active (running)"
+    then
+        sleep 2
+        print_text_in_color "$ICyan" "Waiting for RustDesk Relay service to become active..."
+    else
+        break
+    fi
 done
 
-echo -e "Updates are complete"
+while :
+do
+    PUBKEYNAME=$(find "$RUSTDESK_INSTALL_DIR" -name "*.pub")
+    if [ -z "$PUBKEYNAME" ]
+    then
+        print_text_in_color "$ICyan" "Checking if public key is generated..."
+        sleep 5
+    else
+        print_text_in_color "$IGreen" "Public key path: $PUBKEYNAME"
+        PUBLICKEY=$(cat "$PUBKEYNAME")
+        break
+    fi
+done
+
+msg_box "Rustdesk is now updated!"
