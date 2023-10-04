@@ -137,10 +137,10 @@ purge_linux_package() {
         apt-get autoremove -y
     elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
     then
-        yum purge "${1}" -y
+        yum remove "${1}" -y
     elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
     then
-        pacman -S purge "${1}"
+        pacman -Rs "${1}"
     fi
 }
 
