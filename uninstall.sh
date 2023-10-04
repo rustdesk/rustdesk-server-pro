@@ -47,68 +47,67 @@ fi
 choice=$(whiptail --title "$TITLE" --checklist \
 "What do you want to uninstall?
 $CHECKLIST_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
-"curl" "(Removes curl package)" OFF \
-"nginxconf" "(Removes Rustdesk Nginx config)" ON \
-"nginxall" "(Removes Nginx package + all configurations)" ON \
-"wget" "(Removes wget package)" ON \
-"unzip" "(Removes unzip package)" ON \
-"tar" "(Removes tar package)" ON \
-"whiptail" "(Removes whiptail package)" ON \
-"dnsutils" "(Removes dnsutils package)" ON \
-"bind-utils" "(Removes bind-utils package)" ON \
-"bind" "(Removes bind package)" ON \
-"UFW" "(Removes UFW package plus rules)" ON \
+"curl" "(Removes curl:// linux package)" OFF \
+"nginxconf" "(Removes Rustdesk Nginx config)" OFF \
+"nginxall" "(Removes *everything* releated to Nginx)" ON \
+"wget" "(Removes wget linux package)" ON \
+"unzip" "(Removes unzip linux package)" ON \
+"tar" "(Removes tar linux package)" ON \
+"whiptail" "(Removes whiptail linux package)" ON \
+"dnsutils" "(Removes dnsutils linux package)" ON \
+"bind-utils" "(Removes bind-utils linux package)" ON \
+"bind" "(Removes bind linux package)" ON \
+"UFW" "(Removes UFW linux package plus rules)" ON \
 "Rustdesk LOGs" "(Removes RustDesk log dir)" ON \
 "Rustdesk Server" "(Removes Rustdesk server + services)" ON \
 "Certbot" "(Removes Certbot package plus Let's Encrypt)" ON 3>&1 1>&2 2>&3)
 
 case "$choice" in
     *"curl"*)
-        curl=yes
+        REMOVECURL="yes"
     ;;&
     *"nginxconf"*)
-        nginxconf=yes
+        REMOVE_NGINX_CONF="yes"
     ;;&
     *"nginxall"*)
-        nginxall=yes
+        REMOVE_NGINX_ALL="yes"
     ;;&
     *"wget"*)
-        wget=yes
+        REMOVE_WGET="yes"
     ;;&
     *"unzip"*)
-        unzip=yes
+        REMOVE_UNZIP="yes"
     ;;&
     *"tar"*)
-        tar=yes
+        REMOVE_TAR="yes"
     ;;&
     *"whiptail"*)
-        whiptail=yes
+        REMOVE_WHIPTAIL="yes"
     ;;&
     *"dnsutils"*)
-        dnsutils=yes
+        REMOVE_DNSUTILS="yes"
     ;;&
     *"bind-utils"*)
-        bind-utils=yes
+        REMOVE_BIND_UTILS="yes"
     ;;&
     *"bind"*)
-        bind=yes
+        REMOVE_BIND="yes"
     ;;&
     *"UFW"*)
-        UFW=yes
+        REMOVE_UFW="yes"
     ;;&
     *"Rustdesk LOGs"*)
-        Rustdesk_LOGs=yes
+        REMOVE_RUSTDESK_LOG="yes"
     ;;&
-    *"Rustdesk Server"*)
-        Rustdesk_Server=yes
+    *"Rustdesk SERVER"*)
+        REMOVE_RUSTDESK_SERVER="yes"
     ;;&
     *"Certbot"*)
-        Certbot=yes
+        REMOVE_CERTBOT="yes"
     ;;&
     *)
     ;;
 esac
-exit
 
 msg_box "WARNING WARNING WARNING
 
@@ -138,7 +137,7 @@ then
 fi
 
 # Rustdesk Server
-if [ -n "$Rustdesk_Server" ]
+if [ -n "$REMOVE_RUSTDESK_SERVER" ]
 then
     # Rustdesk installation dir
     print_text_in_color "$IGreen" "Removing RustDesk Server..."
@@ -160,80 +159,80 @@ then
 fi
 
 # Rustdesk LOG
-if [ -n "$Rustdesk_LOGs" ]
+if [ -n "$REMOVE_RUSTDESK_LOG" ]
 then
     # Rustdesk LOG dir
     rm -rf "$RUSTDESK_LOG_DIR"
 fi
 
 # Certbot
-if [ -n "$Certbot" ]
+if [ -n "$REMOVE_CERTBOT" ]
 then
     if snap list | grep -q certbot > /dev/null
     then
         purge_linux_package snap
         snap remove certbot
     else
-        purge_linux_packagepython3-certbot-nginx -y
+        purge_linux_package python3-certbot-nginx -y
     fi
     # Also remove the actual certs
     rm -rf /etc/letsencrypt
 fi
 
 # Nginx
-if [ -n "$nginxconf" ]
+if [ -n "$REMOVE_NGINX_CONF" ]
 then
     rm -f "/etc/nginx/sites-available/rustdesk.conf"
     rm -f "/etc/nginx/sites-enabled/rustdesk.conf"
     service nginx restart
-elif [ -n "$nginxall" ]
+elif [ -n "$REMOVE_NGINX_ALL" ]
 then
     purge_linux_package nginx
     rm -rf "/etc/nginx"
 fi
 
 # The rest
-if [ -n "$curl" ]
+if [ -n "$REMOVE_CURL" ]
 then
     purge_linux_package curl
 fi
 
-if [ -n "$wget" ]
+if [ -n "$REMOVE_WGET" ]
 then
     purge_linux_package wget
 fi
 
-if [ -n "$unzip" ]
+if [ -n "$REMOVE_UNZIP" ]
 then
     purge_linux_package unzip
 fi
 
-if [ -n "$tar" ]
+if [ -n "$REMOVE_TAR" ]
 then
     purge_linux_package tar
 fi
 
-if [ -n "$whiptail" ]
+if [ -n "$REMOVE_WHIPTAIL" ]
 then
     purge_linux_package whiptail
 fi
 
-if [ -n "$dnsutils" ]
+if [ -n "$REMOVE_DNSUTILS" ]
 then
     purge_linux_package dnsutils
 fi
 
-if [ -n "$bind-utils" ]
+if [ -n "$REMOVE_BIND_UTILS" ]
 then
     purge_linux_package bind-utils
 fi
 
-if [ -n "$bind" ]
+if [ -n "$REMOVE_BIND" ]
 then
     purge_linux_package bind
 fi
 
-if [ -n "$UFW" ]
+if [ -n "$REMOVE_UFW" ]
 then
     purge_linux_package ufw
 fi
