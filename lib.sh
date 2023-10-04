@@ -134,7 +134,7 @@ install_linux_package() {
     # osInfo[/etc/alpine-release]=apk
     if [ -x "$(command -v apt-get)" ]
     then
-        sudo apt-get install "${1}"
+        sudo apt-get install "${1}" -y
     elif [ -x "$(command -v apk)" ]
     then
         sudo apk add --no-cache "${1}"
