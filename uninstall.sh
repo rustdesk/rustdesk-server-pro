@@ -48,7 +48,8 @@ choice=$(whiptail --title "$TITLE" --checklist \
 "What do you want to uninstall?
 $CHECKLIST_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
 "curl" "(Removes curl package)" OFF \
-"nginx" "(Removes nginx package + all configurations)" ON \
+"nginxconf" "(Removes Rustdesk Nginx config)" ON \
+"nginxall" "(Removes Nginx package + all configurations)" ON \
 "wget" "(Removes wget package)" ON \
 "unzip" "(Removes unzip package)" ON \
 "tar" "(Removes tar package)" ON \
@@ -178,6 +179,7 @@ fi
 
 # Nginx
 if [ -n "$nginxconf" ]
+then
     rm -f "/etc/nginx/sites-available/rustdesk.conf"
     rm -f "/etc/nginx/sites-enabled/rustdesk.conf"
     service nginx restart
