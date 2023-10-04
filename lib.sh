@@ -6,11 +6,19 @@ true
 
 ############ Variables
 
+# PATH & DIR
 RUSTDESK_INSTALL_DIR=/var/lib/rustdesk-server
 RUSTDESK_LOG_DIR=/var/log/rustdesk-server
+# OS
 ARCH=$(uname -m)
-TITLE="RustDesk Linux installer"
+# Network
 WANIP4=$(curl -s -k -m 5 -4 https://api64.ipify.org)
+# Whiptail menus
+TITLE="RustDesk Setup - $(date +%Y)"
+[ -n "$SCRIPT_NAME" ] && TITLE+=" - $SCRIPT_NAME"
+CHECKLIST_GUIDE="Navigate with the [ARROW] keys and (de)select with the [SPACE] key. \
+Confirm by pressing [ENTER]. Cancel by pressing [ESC]."
+MENU_GUIDE="Navigate with the [ARROW] keys and confirm by pressing [ENTER]. Cancel by pressing [ESC]."
 
 ############ Functions
 
