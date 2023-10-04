@@ -66,8 +66,11 @@ case "$choice" in
     *"curl"*)
         curl=yes
     ;;&
-    *"nginx"*)
-        nginx=yes
+    *"nginxconf"*)
+        nginxconf=yes
+    ;;&
+    *"nginxall"*)
+        nginxall=yes
     ;;&
     *"wget"*)
         wget=yes
