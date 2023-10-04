@@ -8,7 +8,8 @@ true
 
 RUSTDESK_INSTALL_DIR=/var/lib/rustdesk-server
 RUSTDESK_LOG_DIR=/var/log/rustdesk-server
-
+ARCH=$(uname -m)
+TITLE="RustDesk Linux installer"
 WANIP4=$(curl -s -k -m 5 -4 https://api64.ipify.org)
 
 ############ Functions
