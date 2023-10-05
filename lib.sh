@@ -6,11 +6,19 @@ true
 
 ############ Variables
 
+# PATH & DIR
 RUSTDESK_INSTALL_DIR=/var/lib/rustdesk-server
 RUSTDESK_LOG_DIR=/var/log/rustdesk-server
+# OS
 ARCH=$(uname -m)
-TITLE="RustDesk Linux installer"
+# Network
 WANIP4=$(curl -s -k -m 5 -4 https://api64.ipify.org)
+# Whiptail menus
+TITLE="RustDesk - $(date +%Y)"
+[ -n "$SCRIPT_NAME" ] && TITLE+=" - $SCRIPT_NAME"
+CHECKLIST_GUIDE="Navigate with the [ARROW] keys and (de)select with the [SPACE] key. \
+Confirm by pressing [ENTER]. Cancel by pressing [ESC]."
+MENU_GUIDE="Navigate with the [ARROW] keys and confirm by pressing [ENTER]. Cancel by pressing [ESC]."
 
 ############ Functions
 
@@ -67,6 +75,115 @@ input_box_flow() {
     echo "$RESULT"
 }
 
+identify_os() {
+if [ -f /etc/os-release ]
+then
+    # freedesktop.org and systemd
+    # shellcheck source=/dev/null
+    source /etc/os-release
+    OS=$NAME
+    VER=$VERSION_ID
+    UPSTREAM_ID=${ID_LIKE,,}
+
+    # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
+    if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]
+    then
+        UPSTREAM_ID="$(echo "${ID_LIKE,,}" | sed s/\"//g | cut -d' ' -f1)"
+    fi
+elif type lsb_release >/dev/null 2>&1
+then
+    # linuxbase.org
+    OS=$(lsb_release -si)
+    VER=$(lsb_release -sr)
+elif [ -f /etc/lsb-release ]
+then
+    # For some versions of Debian/Ubuntu without lsb_release command
+    # shellcheck source=/dev/null
+    source /etc/os-release
+    OS=$DISTRIB_ID
+    VER=$DISTRIB_RELEASE
+elif [ -f /etc/debian_version ]
+then
+    # Older Debian, Ubuntu, etc.
+    OS=Debian
+    VER=$(cat /etc/debian_version)
+elif [ -f /etc/SuSE-release ]
+then
+    # Older SuSE, etc.
+    OS=SuSE
+    VER=$(cat /etc/SuSE-release)
+elif [ -f /etc/redhat-release ]
+then
+    # Older Red Hat, CentOS, etc.
+    OS=RedHat
+    VER=$(cat /etc/redhat-release)
+else
+    # Fall back to uname, e.g. "Linux <version>", also works for BSD, etc.
+    OS=$(uname -s)
+    VER=$(uname -r)
+fi
+}
+
+install_linux_package() {
+    # Install based on OS
+    # osInfo[/etc/redhat-release]=yum
+    # osInfo[/etc/arch-release]=pacman
+    # osInfo[/etc/gentoo-release]=emerge
+    # osInfo[/etc/SuSE-release]=zypp
+    # osInfo[/etc/debian_version]=apt-get
+    # osInfo[/etc/alpine-release]=apk
+    if [ -x "$(command -v apt-get)" ]
+    then
+        sudo apt-get install "${1}" -y
+    elif [ -x "$(command -v apk)" ]
+    then
+        sudo apk add --no-cache "${1}"
+    elif [ -x "$(command -v dnf)" ]
+    then
+        sudo dnf install "${1}"
+    elif [ -x "$(command -v zypper)" ]
+    then
+        sudo zypper install "${1}"
+    elif [ -x "$(command -v pacman)" ]
+    then
+        sudo pacman -S install "${1}"
+    elif [ -x "$(command -v yum)" ]
+    then
+        sudo yum install "${1}"
+    elif [ -x "$(command -v emerge)" ]
+    then
+        sudo emerge -av "${1}"
+    else
+        echo "FAILED TO INSTALL ${1}! Package manager not found: Your OS is currently unsupported."
+    fi
+}
+
+purge_linux_package() {
+    if [ -x "$(command -v apt-get)" ]
+    then
+        sudo apt-get purge --autoremove -y "${1}"
+    elif [ -x "$(command -v apk)" ]
+    then
+        sudo apk del "${1}"
+    elif [ -x "$(command -v dnf)" ]
+    then
+        sudo dnf purge "${1}"
+    elif [ -x "$(command -v zypper)" ]
+    then
+        sudo zypper remove "${1}"
+    elif [ -x "$(command -v pacman)" ]
+    then
+        sudo pacman -Rs "${1}"
+    elif [ -x "$(command -v yum)" ]
+    then
+        sudo yum remove "${1}"
+    elif [ -x "$(command -v emerge)" ]
+    then
+        sudo emerge -Cv "${1}"
+    else
+        echo "FAILED TO REMOVE ${1}! Package manager not found: Your OS is currently unsupported."
+    fi
+}
 
 ## bash colors
 # Reset
