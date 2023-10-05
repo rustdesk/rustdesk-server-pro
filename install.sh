@@ -8,43 +8,49 @@
 # 5. Create systemd services for hbbs and hbbr
 # 6. If you choose Domain, it will install Nginx and Certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, it is automatically renewed
 
+# Please note; even if the script is run as root, you will still be able to choose a non-root user during setup.
+
 ##################################################################################################################
 
-# We need curl to fetch the lib
-# There are the package managers for different OS:
-# osInfo[/etc/redhat-release]=yum
-# osInfo[/etc/arch-release]=pacman
-# osInfo[/etc/gentoo-release]=emerge
-# osInfo[/etc/SuSE-release]=zypp
-# osInfo[/etc/debian_version]=apt-get
-# osInfo[/etc/alpine-release]=apk
-NEEDED_DEPS=(curl whiptail)
-if [ -x "$(command -v apt-get)" ]
+# Install curl and whiptail if needed
+if [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v whiptail)" ]
 then
-    sudo apt-get install "${NEEDED_DEPS[@]}" -y
-elif [ -x "$(command -v apk)" ]
-then
-    sudo apk add --no-cache "${NEEDED_DEPS[@]}"
-elif [ -x "$(command -v dnf)" ]
-then
-    sudo dnf install "${NEEDED_DEPS[@]}"
-elif [ -x "$(command -v zypper)" ]
-then
-    sudo zypper install "${NEEDED_DEPS[@]}"
-elif [ -x "$(command -v pacman)" ]
-then
-    sudo pacman -S install "${NEEDED_DEPS[@]}"
-elif [ -x "$(command -v yum)" ]
-then
-    sudo yum install "${NEEDED_DEPS[@]}"
-elif [ -x "$(command -v emerge)" ]
-then
-    sudo emerge -av "${NEEDED_DEPS[@]}"
-else
-    echo "FAILED TO INSTALL PACKAGE! Package manager not found. You must manually install:" "${NEEDED_DEPS[@]}"
-    exit 1
+    # We need curl to fetch the lib
+    # There are the package managers for different OS:
+    # osInfo[/etc/redhat-release]=yum
+    # osInfo[/etc/arch-release]=pacman
+    # osInfo[/etc/gentoo-release]=emerge
+    # osInfo[/etc/SuSE-release]=zypp
+    # osInfo[/etc/debian_version]=apt-get
+    # osInfo[/etc/alpine-release]=apk
+    NEEDED_DEPS=(curl whiptail)
+    echo "Installing these packages:" "${NEEDED_DEPS[@]}"...
+    if [ -x "$(command -v apt-get)" ]
+    then
+        sudo apt-get install "${NEEDED_DEPS[@]}" -y
+    elif [ -x "$(command -v apk)" ]
+    then
+        sudo apk add --no-cache "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v dnf)" ]
+    then
+        sudo dnf install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v zypper)" ]
+    then
+        sudo zypper install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v pacman)" ]
+    then
+        sudo pacman -S install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v yum)" ]
+    then
+        sudo yum install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v emerge)" ]
+    then
+        sudo emerge -av "${NEEDED_DEPS[@]}"
+    else
+        echo "FAILED TO INSTALL! Package manager not found. You must manually install:" "${NEEDED_DEPS[@]}"
+        exit 1
+    fi
 fi
-
 
 # We need to source directly from the Github repo to be able to use the functions here
 # shellcheck disable=2034,2059,2164
@@ -58,24 +64,32 @@ unset SCRIPT_NAME
 
 ##################################################################################################################
 
-# This must run as root
+# Check if root
 root_check
+
+# Output debugging info if $DEBUG set
+if [ "$DEBUG" = "true" ]
+then
+    identify_os
+    print_text_in_color "$ICyan" "OS: $OS"
+    print_text_in_color "$ICyan" "VER: $VER"
+    print_text_in_color "$ICyan" "UPSTREAM_ID: $UPSTREAM_ID"
+    exit 0
+fi
 
 # We need the WAN IP
 get_wanip4
 
-# Install needed dependencies
-install_linux_package unzip
-install_linux_package tar
-install_linux_package dnsutils
-install_linux_package ufw
-if ! install_linux_package bind9-utils
+# Automatic restart of services while installing
+# Restart mode: (l)ist only, (i)nteractive or (a)utomatically.
+if [ ! -f /etc/needrestart/needrestart.conf ]
 then
-    install_linux_package bind-utils
-fi
-if ! install_linux_package bind9
-then
-    install_linux_package bind
+    install_linux_package needrestart
+    if ! grep -rq "{restart} = 'a'" /etc/needrestart/needrestart.conf
+    then
+        # Restart mode: (l)ist only, (i)nteractive or (a)utomatically.
+        sed -i "s|#\$nrconf{restart} =.*|\$nrconf{restart} = 'a'\;|g" /etc/needrestart/needrestart.conf
+    fi
 fi
 
 # Select user for installation
@@ -99,18 +113,20 @@ Please try again."
     run_as_non_root_user() {
         sudo -u "$RUSTDESK_USER" "$@";
     }
-
-   chown "$RUSTDESK_USER":"$RUSTDESK_USER" lib.sh
 fi
 
-# Output debugging info if $DEBUG set
-if [ "$DEBUG" = "true" ]
+# Install needed dependencies
+install_linux_package unzip
+install_linux_package tar
+install_linux_package dnsutils
+install_linux_package ufw
+if ! install_linux_package bind9-utils
 then
-    identify_os
-    print_text_in_color "$ICyan" "OS: $OS"
-    print_text_in_color "$ICyan" "VER: $VER"
-    print_text_in_color "$ICyan" "UPSTREAM_ID: $UPSTREAM_ID"
-    exit 0
+    install_linux_package bind-utils
+fi
+if ! install_linux_package bind9
+then
+    install_linux_package bind
 fi
 
 # Setting up firewall
@@ -374,7 +390,7 @@ Do you want to install Certbot with snap? (recommended)"
             install_linux_package nginx
             if ! install_linux_package snapd
             then
-                print_text_in_color "$IRed" "Sorry, snapd wasn't found on your system, reverting to python-certbot."
+                print_text_in_color "$IRed" "Sorry, snapd wasn't found on your system, using 'python3-certbot-nginx' instead."
                 install_linux_package python3-certbot-nginx
             else
                 snap install certbot --classic
@@ -387,8 +403,6 @@ Do you want to install Certbot with snap? (recommended)"
         # Add Nginx config
         if [ ! -f "/etc/nginx/sites-available/rustdesk.conf" ]
         then
-            rm -f "/etc/nginx/sites-available/rustdesk.conf"
-            rm -f "/etc/nginx/sites-enabled/rustdesk.conf"
             touch "/etc/nginx/sites-available/rustdesk.conf"
             cat << NGINX_RUSTDESK_CONF > "/etc/nginx/sites-available/rustdesk.conf"
 server {
@@ -415,8 +429,8 @@ NGINX_RUSTDESK_CONF
         # Enable firewall rules for the domain
         ufw allow 80/tcp
         ufw allow 443/tcp
-        ufw enable
-        ufw reload
+        ufw --force enable
+        ufw --force reload
 
         # Generate the certifictae
         if ! certbot --nginx --cert-name "${RUSTDESK_DOMAIN}" --key-type ecdsa --renew-by-default --no-eff-email --agree-tos --server https://acme-v02.api.letsencrypt.org/directory -d "${RUSTDESK_DOMAIN}"
@@ -430,8 +444,8 @@ Please try again."
     ;;
     "IP")
         ufw allow 21114/tcp
-        ufw enable
-        ufw reload
+        ufw --force enable
+        ufw --force reload
     ;;
     *)
     ;;
