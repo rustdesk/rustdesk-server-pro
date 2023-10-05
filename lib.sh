@@ -11,8 +11,9 @@ RUSTDESK_INSTALL_DIR=/var/lib/rustdesk-server
 RUSTDESK_LOG_DIR=/var/log/rustdesk-server
 # OS
 ARCH=$(uname -m)
-# Network
-WANIP4=$(curl -s -k -m 5 -4 https://api64.ipify.org)
+get_wanip4() {
+    WANIP4=$(curl -s -k -m 5 -4 https://api64.ipify.org)
+}
 # Whiptail menus
 TITLE="RustDesk - $(date +%Y)"
 [ -n "$SCRIPT_NAME" ] && TITLE+=" - $SCRIPT_NAME"
@@ -21,6 +22,32 @@ Confirm by pressing [ENTER]. Cancel by pressing [ESC]."
 MENU_GUIDE="Navigate with the [ARROW] keys and confirm by pressing [ENTER]. Cancel by pressing [ESC]."
 
 ############ Functions
+
+is_root() {
+    if [[ "$EUID" -ne 0 ]]
+    then
+        return 1
+    else
+        return 0
+    fi
+}
+
+root_check() {
+if ! is_root
+then
+    msg_box "Sorry, you are not root. You now have two options:
+
+1. Use SUDO directly:
+   a) :~$ sudo bash name-of-script.sh
+
+2. Become ROOT and then type your command:
+   a) :~$ sudo -i
+   b) :~# bash name-of-script.sh
+
+More information can be found here: https://unix.stackexchange.com/a/3064"
+    exit 1
+fi
+}
 
 print_text_in_color() {
 printf "%b%s%b\n" "$1" "$2" "$Color_Off"
