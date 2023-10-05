@@ -204,4 +204,6 @@ do
     fi
 done
 
-msg_box "Rustdesk is now updated!"
+msg_box "Rustdesk is now updated!
+
+Public Key: $PUBLICKEY"
