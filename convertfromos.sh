@@ -87,16 +87,30 @@ sudo rm -f /etc/systemd/system/gohttpserver.service
 sudo rm -f /etc/systemd/system/rustdesksignal.service
 sudo rm -f /etc/systemd/system/rustdeskrelay.service
 
-# Migration tasks
-mv /opt/rustdesk/id_* "$RUSTDESK_INSTALL_DIR/"
-rm -rf /opt/rustdesk
+# We need to create the new install dir before the migration task, otherwise mv will fail
+mkdir -p "$RUSTDESK_INSTALL_DIR"
 
-# Install Rustdesk again
-curl -fSLO --retry 3 https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/install.sh
-if sudo bash install.sh
+# Migration tasks
+if [ -d /opt/rustdesk ]
 then
-    msg_box "Conversion from OS seems to have been OK!"
+    mv /opt/rustdesk/id_* "$RUSTDESK_INSTALL_DIR/"
+    rm -rf /opt/rustdesk
+fi
+
+# Install Rustdesk again 
+# It won't install RustDesk again since there's a check in the install script which checks for the installation folder, but services and everything else will be created
+# Would it be possible to move L93-98 after the installation?
+if ! curl -fSLO --retry 3 https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/install.sh
+    msg_box "Sorry, we couldn't fetch the install script, please try again.
+Your old installation now lives in $RUSTDESK_INSTALL_DIR"
+    exit
 else
-    msg_box "Sorry, but something seems to have gone wrong, please report this to:
+    if sudo bash install.sh
+    then
+        rm -f install.sh
+        msg_box "Conversion from OS seems to have been OK!"
+    else
+        msg_box "Sorry, but something seems to have gone wrong, please report this to:
 https://github.com/rustdesk/rustdesk-server-pro/"
+    fi
 fi
