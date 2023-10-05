@@ -24,7 +24,7 @@ then
     # osInfo[/etc/debian_version]=apt-get
     # osInfo[/etc/alpine-release]=apk
     NEEDED_DEPS=(curl whiptail)
-    echo "Installing these packages:" "${NEEDED_DEPS[@]}"...
+    echo "Installing these packages:" "${NEEDED_DEPS[@]}"
     if [ -x "$(command -v apt-get)" ]
     then
         sudo apt-get install "${NEEDED_DEPS[@]}" -y
