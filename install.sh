@@ -1,131 +1,88 @@
 #!/bin/bash
 
-# shellcheck disable=2034,2059,2164
-true
-# see https://github.com/koalaman/shellcheck/wiki/Directive
-
 # This script will do the following to install RustDesk Server Pro
 # 1. Install some dependencies
 # 2. Setup UFW firewall if available
-# 3. Create 2 folders /var/lib/rustdesk-server and /var/log/rustdesk-server ("$RUSTDESK_LOG_DIR")
+# 3. Create 2 folders /var/lib/rustdesk-server and /var/log/rustdesk-server ("$RUSTDESK_INSTALL_DIR" and "$RUSTDESK_LOG_DIR")
 # 4. Download and extract RustDesk Pro Services to the above folder
 # 5. Create systemd services for hbbs and hbbr
 # 6. If you choose Domain, it will install Nginx and Certbot, allowing the API to be available on port 443 (https) and get an SSL certificate over port 80, it is automatically renewed
 
 ##################################################################################################################
 
-if [[ "$EUID" -ne 0 ]]
+# We need curl to fetch the lib
+# There are the package managers for different OS:
+# osInfo[/etc/redhat-release]=yum
+# osInfo[/etc/arch-release]=pacman
+# osInfo[/etc/gentoo-release]=emerge
+# osInfo[/etc/SuSE-release]=zypp
+# osInfo[/etc/debian_version]=apt-get
+# osInfo[/etc/alpine-release]=apk
+NEEDED_DEPS=(curl whiptail)
+if [ -x "$(command -v apt-get)" ]
 then
-    echo "Sorry, you are not root. You now have two options:"
-    echo
-    echo "1. Use SUDO directly:"
-    echo "   a) :~$ sudo bash install.sh"
-    echo
-    echo "2. Become ROOT and then type your command:"
-    echo "   a) :~$ sudo -i"
-    echo "   b) :~# bash install.sh"
-    echo
-    echo "More information can be found here: https://unix.stackexchange.com/a/3064"
-    exit 1
-fi
-
-# Identify OS
-if [ -f /etc/os-release ]
+    sudo apt-get install "${NEEDED_DEPS[@]}" -y
+elif [ -x "$(command -v apk)" ]
 then
-    # freedesktop.org and systemd
-    # shellcheck source=/dev/null
-    source /etc/os-release
-    OS=$NAME
-    VER=$VERSION_ID
-    UPSTREAM_ID=${ID_LIKE,,}
-
-    # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
-    if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]
-    then
-        UPSTREAM_ID="$(echo "${ID_LIKE,,}" | sed s/\"//g | cut -d' ' -f1)"
-    fi
-
-elif type lsb_release >/dev/null 2>&1
+    sudo apk add --no-cache "${NEEDED_DEPS[@]}"
+elif [ -x "$(command -v dnf)" ]
 then
-    # linuxbase.org
-    OS=$(lsb_release -si)
-    VER=$(lsb_release -sr)
-elif [ -f /etc/lsb-release ]
+    sudo dnf install "${NEEDED_DEPS[@]}"
+elif [ -x "$(command -v zypper)" ]
 then
-    # For some versions of Debian/Ubuntu without lsb_release command
-    # shellcheck source=/dev/null
-    source /etc/os-release
-    OS=$DISTRIB_ID
-    VER=$DISTRIB_RELEASE
-elif [ -f /etc/debian_version ]
+    sudo zypper install "${NEEDED_DEPS[@]}"
+elif [ -x "$(command -v pacman)" ]
 then
-    # Older Debian, Ubuntu, etc.
-    OS=Debian
-    VER=$(cat /etc/debian_version)
-elif [ -f /etc/SuSE-release ]
+    sudo pacman -S install "${NEEDED_DEPS[@]}"
+elif [ -x "$(command -v yum)" ]
 then
-    # Older SuSE, etc.
-    OS=SuSE
-    VER=$(cat /etc/SuSE-release)
-elif [ -f /etc/redhat-release ]
+    sudo yum install "${NEEDED_DEPS[@]}"
+elif [ -x "$(command -v emerge)" ]
 then
-    # Older Red Hat, CentOS, etc.
-    OS=RedHat
-    VER=$(cat /etc/redhat-release)
+    sudo emerge -av "${NEEDED_DEPS[@]}"
 else
-    # Fall back to uname, e.g. "Linux <version>", also works for BSD, etc.
-    OS=$(uname -s)
-    VER=$(uname -r)
-fi
-
-# Setup prereqs for server
-# Common named prereqs
-PREREQ=(curl wget unzip tar whiptail)
-PREREQDEB=(dnsutils ufw)
-PREREQRPM=(bind-utils)
-PREREQARCH=(bind)
-
-echo "Installing prerequisites"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
-then
-    apt-get update
-    apt-get install -y "${PREREQ[@]}" "${PREREQDEB[@]}"
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
-then
-# openSUSE 15.4 fails to run the relay service and hangs waiting for it
-# Needs more work before it can be enabled
-# || [ "${UPSTREAM_ID}" = "suse" ]
-    yum update -y
-    yum install -y "${PREREQ[@]}" "${PREREQRPM[@]}" # git
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
-then
-    pacman -Syu
-    pacman -S "${PREREQ[@]}" "${PREREQARCH[@]}"
-else
-    echo "Unsupported OS!"
-    # Here you could ask the user for permission to try and install anyway
-    # If they say yes, then do the install
-    # If they say no, exit the script
+    echo "FAILED TO INSTALL PACKAGE! Package manager not found. You must manually install:" "${NEEDED_DEPS[@]}"
     exit 1
 fi
 
-# Download the lib file
-if ! curl -fSL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o lib.sh
-then
-    echo "Failed to download the lib.sh file. Please try again"
-    exit 1
-fi
 
+# We need to source directly from the Github repo to be able to use the functions here
 # shellcheck disable=2034,2059,2164
 true
+SCRIPT_NAME="Install script"
+export SCRIPT_NAME
 # shellcheck source=lib.sh
-source lib.sh
+source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh)
+# see https://github.com/koalaman/shellcheck/wiki/Directive
+unset SCRIPT_NAME
+
+##################################################################################################################
+
+# This must run as root
+root_check
+
+# We need the WAN IP
+get_wanip4
+
+# Install needed dependencies
+install_linux_package unzip
+install_linux_package tar
+install_linux_package dnsutils
+install_linux_package ufw
+if ! install_linux_package bind9-utils
+then
+    install_linux_package bind-utils
+fi
+if ! install_linux_package bind9
+then
+    install_linux_package bind
+fi
 
 # Select user for installation
-msg_box "Rustdesk needs to be installed as root, but you can still do some parts as an unprivileged user.
+msg_box "Rustdesk can be installed as an unprivileged user, but we need root for everything else.
 Running with an unprivileged user enhances security, and is recommended."
 
-if yesno_box_yes "Do you want to use an unprivileged user where it's possible?"
+if yesno_box_yes "Do you want to use an unprivileged user for Rustdesk?"
 then
     while :
     do
@@ -149,6 +106,7 @@ fi
 # Output debugging info if $DEBUG set
 if [ "$DEBUG" = "true" ]
 then
+    identify_os
     print_text_in_color "$ICyan" "OS: $OS"
     print_text_in_color "$ICyan" "VER: $VER"
     print_text_in_color "$ICyan" "UPSTREAM_ID: $UPSTREAM_ID"
@@ -406,41 +364,27 @@ Please check https://www.whatsmydns.net/#A/${RUSTDESK_DOMAIN} if the IP seems co
             exit 1
         fi
 
-
-        print_text_in_color "$IGreen" "Installing Nginx"
-        if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]
-        then
-            if yesno_box_yes "We use Certbot to generate the free TLS certificate from Let's Encrypt.
+        # Install packages
+        print_text_in_color "$IGreen" "Installing Nginx and Cerbot..."
+        if yesno_box_yes "We use Certbot to generate the free TLS certificate from Let's Encrypt.
 The default behavior of installing Certbot is to use the snap package which auto updates, and provides the latest version of Certbot. If you don't like snap packages, you can opt out now and we'll use regular (old) deb packages instead.
 
 Do you want to install Certbot with snap? (recommended)"
+        then
+            install_linux_package nginx
+            if ! install_linux_package snapd
             then
-                apt-get install nginx -y
-                apt-get install snapd -y
-                snap install certbot --classic
+                print_text_in_color "$IRed" "Sorry, snapd wasn't found on your system, reverting to python-certbot."
+                install_linux_package python3-certbot-nginx
             else
-                apt-get install nginx -y
-                apt-get install python3-certbot-nginx -y
+                snap install certbot --classic
             fi
-        elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ]
-        then
-            # openSUSE 15.4 fails to run the relay service and hangs waiting for it
-            # Needs more work before it can be enabled
-            # || [ "${UPSTREAM_ID}" = "suse" ]
-            yum -y install nginx
-            yum -y install python3-certbot-nginx
-        elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]
-        then
-           pacman -S install nginx
-           pacman -S install python3-certbot-nginx
         else
-           msg_box "Sorry, your OS is unsupported"
-            if ! yesno_box_no "It might work anyway though... Do you want to give it a shot?"
-            then
-                exit 1
-            fi
+            install_linux_package nginx
+            install_linux_package python3-certbot-nginx
         fi
 
+        # Add Nginx config
         if [ ! -f "/etc/nginx/sites-available/rustdesk.conf" ]
         then
             rm -f "/etc/nginx/sites-available/rustdesk.conf"
@@ -518,4 +462,3 @@ fi
 print_text_in_color "$IGreen" "Cleaning up..."
 rm -f rustdesk-server-linux-"${ACTUAL_TAR_NAME}".zip
 rm -rf "${ACTUAL_TAR_NAME}"
-rm -f lib.sh
