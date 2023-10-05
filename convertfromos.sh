@@ -95,7 +95,7 @@ rm -rf /opt/rustdesk
 curl -fSLO --retry 3 https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/install.sh
 if sudo bash install.sh
 then
-    msg_box "Convertion seems to have been OK!"
+    msg_box "Conversion from OS seems to have been OK!"
 else
     msg_box "Sorry, but something seems to have gone wrong, please report this to:
 https://github.com/rustdesk/rustdesk-server-pro/"
