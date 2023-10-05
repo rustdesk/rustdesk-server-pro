@@ -2,33 +2,59 @@
 
 ##################################################################################################################
 
-if [[ "$EUID" -ne 0 ]]
+# Install curl and whiptail if needed
+if [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v whiptail)" ]
 then
-    echo "Sorry, you are not root. You now have two options:"
-    echo
-    echo "1. Use SUDO directly:"
-    echo "   a) :~$ sudo bash install.sh"
-    echo
-    echo "2. Become ROOT and then type your command:"
-    echo "   a) :~$ sudo -i"
-    echo "   b) :~# bash install.sh"
-    echo
-    echo "More information can be found here: https://unix.stackexchange.com/a/3064"
-    exit 1
+    # We need curl to fetch the lib
+    # There are the package managers for different OS:
+    # osInfo[/etc/redhat-release]=yum
+    # osInfo[/etc/arch-release]=pacman
+    # osInfo[/etc/gentoo-release]=emerge
+    # osInfo[/etc/SuSE-release]=zypp
+    # osInfo[/etc/debian_version]=apt-get
+    # osInfo[/etc/alpine-release]=apk
+    NEEDED_DEPS=(curl whiptail)
+    if [ -x "$(command -v apt-get)" ]
+    then
+        sudo apt-get install "${NEEDED_DEPS[@]}" -y
+    elif [ -x "$(command -v apk)" ]
+    then
+        sudo apk add --no-cache "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v dnf)" ]
+    then
+        sudo dnf install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v zypper)" ]
+    then
+        sudo zypper install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v pacman)" ]
+    then
+        sudo pacman -S install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v yum)" ]
+    then
+        sudo yum install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v emerge)" ]
+    then
+        sudo emerge -av "${NEEDED_DEPS[@]}"
+    else
+        echo "FAILED TO INSTALL! Package manager not found. You must manually install:" "${NEEDED_DEPS[@]}"
+        exit 1
+    fi
 fi
 
-# Download the lib file
-if ! curl -fSL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh -o lib.sh
-then
-    echo "Failed to download the lib.sh file. Please try again"
-    exit 1
-fi
-
+# We need to source directly from the Github repo to be able to use the functions here
 # shellcheck disable=2034,2059,2164
 true
-SCRIPT_NAME="Uninstall Script"
+SCRIPT_NAME="Uninstall script"
+export SCRIPT_NAME
 # shellcheck source=lib.sh
-source lib.sh
+source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh)
+# see https://github.com/koalaman/shellcheck/wiki/Directive
+unset SCRIPT_NAME
+
+##################################################################################################################
+
+# Check if root
+root_check
 
 # Output debugging info if $DEBUG set
 if [ "$DEBUG" = "true" ]
@@ -39,7 +65,6 @@ then
     print_text_in_color "$ICyan" "UPSTREAM_ID: $UPSTREAM_ID"
     exit 0
 fi
-
 
 # Switch for Certbot
 if [ -d /etc/letsencrypt ]
@@ -53,7 +78,6 @@ fi
 choice=$(whiptail --title "$TITLE" --checklist \
 "What do you want to uninstall?
 $CHECKLIST_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
-"curl" "(Removes curl:// linux package)" OFF \
 "nginxconf" "(Removes Rustdesk Nginx config)" OFF \
 "nginxall" "(Removes *everything* releated to Nginx)" ON \
 "wget" "(Removes wget linux package)" ON \
@@ -65,12 +89,10 @@ $CHECKLIST_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
 "UFW" "(Removes UFW linux package plus rules)" ON \
 "Rustdesk LOGs" "(Removes RustDesk log dir)" ON \
 "Rustdesk Server" "(Removes Rustdesk server + services)" ON \
+"curl" "(Removes curl:// linux package)" OFF \
 "Certbot" "(Removes Certbot package plus Let's Encrypt)" "$CERTBOT_SWITCH" 3>&1 1>&2 2>&3)
 
 case "$choice" in
-    *"curl"*)
-        REMOVE_CURL="yes"
-    ;;&
     *"nginxconf"*)
         REMOVE_NGINX_CONF="yes"
     ;;&
@@ -104,6 +126,9 @@ case "$choice" in
     *"Rustdesk SERVER"*)
         REMOVE_RUSTDESK_SERVER="yes"
     ;;&
+    *"curl"*)
+        REMOVE_CURL="yes"
+    ;;&
     *"Certbot"*)
         REMOVE_CERTBOT="yes"
     ;;&
@@ -113,7 +138,7 @@ esac
 
 msg_box "WARNING WARNING WARNING
 
-This script will remove EVERYTHING that was you chose in the previous selection.
+This script will remove EVERYTHING that was chosen in the previous selection.
 You can choose to opt out after you hit OK."
 
 if ! yesno_box_no "Are you REALLY sure you want to continue with the uninstallation?"
@@ -134,8 +159,8 @@ then
     else
         ufw delete allow 21114/tcp
     fi
-    ufw disable
-    ufw reload
+    ufw --force disable
+    ufw --force reload
 fi
 
 # Rustdesk Server
@@ -231,10 +256,9 @@ fi
 
 msg_box "Uninstallation complete!
 
-Please hit OK to remove the last file."
+Please hit OK to remove the last package."
 
 if [ -n "$REMOVE_WHIPTAIL" ]
 then
     purge_linux_package whiptail
 fi
-rm -f lib.sh
