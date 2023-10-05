@@ -1,52 +1,58 @@
 #!/bin/bash
 
+##################################################################################################################
+
+# Install curl and whiptail if needed
+if [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v whiptail)" ]
+then
+    # We need curl to fetch the lib
+    # There are the package managers for different OS:
+    # osInfo[/etc/redhat-release]=yum
+    # osInfo[/etc/arch-release]=pacman
+    # osInfo[/etc/gentoo-release]=emerge
+    # osInfo[/etc/SuSE-release]=zypp
+    # osInfo[/etc/debian_version]=apt-get
+    # osInfo[/etc/alpine-release]=apk
+    NEEDED_DEPS=(curl whiptail)
+    echo "Installing these packages:" "${NEEDED_DEPS[@]}"
+    if [ -x "$(command -v apt-get)" ]
+    then
+        sudo apt-get install "${NEEDED_DEPS[@]}" -y
+    elif [ -x "$(command -v apk)" ]
+    then
+        sudo apk add --no-cache "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v dnf)" ]
+    then
+        sudo dnf install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v zypper)" ]
+    then
+        sudo zypper install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v pacman)" ]
+    then
+        sudo pacman -S install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v yum)" ]
+    then
+        sudo yum install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v emerge)" ]
+    then
+        sudo emerge -av "${NEEDED_DEPS[@]}"
+    else
+        echo "FAILED TO INSTALL! Package manager not found. You must manually install:" "${NEEDED_DEPS[@]}"
+        exit 1
+    fi
+fi
+
+# We need to source directly from the Github repo to be able to use the functions here
 # shellcheck disable=2034,2059,2164
 true
-SCRIPT_NAME="Install script"
+SCRIPT_NAME="Update script"
 export SCRIPT_NAME
 # shellcheck source=lib.sh
 source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh)
 # see https://github.com/koalaman/shellcheck/wiki/Directive
 unset SCRIPT_NAME
 
-# Select user for update
-if yesno_box_yes "Did you install Rustdesk with a non-root user?"
-then
-    while :
-    do
-        RUSTDESK_USER=$(input_box_flow "Please enter the name of your non-root user:")
-        if ! id "$RUSTDESK_USER"
-        then
-            msg_box "We couldn't find $RUSTDESK_USER on the system, are you sure it's correct?
-Please try again."
-        else
-            break
-        fi
-    done
-
-    run_as_non_root_user() {
-        sudo -u "$RUSTDESK_USER" "$@";
-    }
-else
-    root_check
-fi
-
-
-# Get current release version
-RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }')
-RDCURRENT=$(/usr/bin/hbbr --version | sed -r 's/hbbr (.*)/\1/')
-
-if [ "$RDLATEST" == "$RDCURRENT" ]; then
-    msg_box "Same version, no need to update."
-    exit 0
-fi
-
-# Stop services
-# HBBS
-sudo systemctl stop rustdesk-hbbs.service
-# HBBR
-sudo systemctl stop rustdesk-hbbr.service
-sleep 10
+##################################################################################################################
 
 # Output debugging info if $DEBUG set
 if [ "$DEBUG" = "true" ]
@@ -57,6 +63,36 @@ then
     echo "UPSTREAM_ID: $UPSTREAM_ID"
     exit 0
 fi
+
+# Select user for update
+RUSTDESK_USER=$(whoami)
+    run_as_non_root_user() {
+        sudo -u "$RUSTDESK_USER" "$@";
+    }
+
+# A variant of whoami to be complaint with the install script
+if [ "$RUSTDESK_USER" = 'root' ]
+then
+    RDCURRENT=$(/usr/bin/hbbr --version | sed -r 's/hbbr (.*)/\1/')
+else
+    RDCURRENT=$(run_as_non_root_user /usr/bin/hbbr --version | sed -r 's/hbbr (.*)/\1/')
+fi
+
+# Get current release version
+RDLATEST=$(curl https://api.github.com/repos/rustdesk/rustdesk-server-pro/releases/latest -s | grep "tag_name"| awk '{print substr($2, 2, length($2)-3) }')
+
+if [ "$RDLATEST" == "$RDCURRENT" ]
+then
+    msg_box "Same version, no need to update."
+    exit 0
+fi
+
+# Stop services
+# HBBS
+sudo systemctl stop rustdesk-hbbs.service
+# HBBR
+sudo systemctl stop rustdesk-hbbr.service
+sleep 10
 
 if [ ! -d "$RUSTDESK_INSTALL_DIR" ]
 then
