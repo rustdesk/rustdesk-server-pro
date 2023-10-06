@@ -159,6 +159,7 @@ install_linux_package() {
     # osInfo[/etc/SuSE-release]=zypp
     # osInfo[/etc/debian_version]=apt-get
     # osInfo[/etc/alpine-release]=apk
+    print_text_in_color "$IGreen" Installing "${1}"...
     if [ -x "$(command -v apt-get)" ]
     then
         sudo apt-get install "${1}" -y
@@ -181,7 +182,7 @@ install_linux_package() {
     then
         sudo emerge -av "${1}"
     else
-        echo "FAILED TO INSTALL ${1}! Package manager not found: Your OS is currently unsupported."
+        print_text_in_color "$IRed" "FAILED TO INSTALL ${1}! Package manager not found: Your OS is currently unsupported."
     fi
 }
 
@@ -208,7 +209,7 @@ purge_linux_package() {
     then
         sudo emerge -Cv "${1}"
     else
-        echo "FAILED TO REMOVE ${1}! Package manager not found: Your OS is currently unsupported."
+        print_text_in_color "$IRed" "FAILED TO REMOVE ${1}! Package manager not found: Your OS is currently unsupported."
     fi
 }
 
