@@ -91,6 +91,7 @@ sudo rm -f /etc/systemd/system/rustdeskrelay.service
 # It won't install RustDesk again since there's a check in the install script which checks for the installation folder, but services and everything else will be created
 # Would it be possible to move L93-98 after the installation?
 if ! curl -fSLO --retry 3 https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/install.sh
+then
     msg_box "Sorry, we couldn't fetch the install script, please try again.
 Your old installation still lives in /opt/rustdesk"
     exit
@@ -113,7 +114,6 @@ else
                 exit 1
             fi
         fi
-fi
         msg_box "Conversion from OS seems to have been OK!"
     else
         msg_box "Sorry, but something seems to have gone wrong, please report this to:
