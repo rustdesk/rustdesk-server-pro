@@ -170,7 +170,7 @@ then
     # Rustdesk installation dir
     print_text_in_color "$IGreen" "Removing RustDesk Server..."
     rm -rf "$RUSTDESK_INSTALL_DIR"
-    rm -rf /usr/bin/hbbr
+    rm -rf /usr/bin/hbbs
     rm -rf /usr/bin/hbbr
 
     # systemctl services
