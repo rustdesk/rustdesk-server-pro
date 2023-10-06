@@ -1,131 +1,162 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
+##################################################################################################################
+
+# Install curl and whiptail if needed
+if [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v whiptail)" ]
+then
+    # We need curl to fetch the lib
+    # There are the package managers for different OS:
+    # osInfo[/etc/redhat-release]=yum
+    # osInfo[/etc/arch-release]=pacman
+    # osInfo[/etc/gentoo-release]=emerge
+    # osInfo[/etc/SuSE-release]=zypp
+    # osInfo[/etc/debian_version]=apt-get
+    # osInfo[/etc/alpine-release]=apk
+    NEEDED_DEPS=(curl whiptail)
+    echo "Installing these packages:" "${NEEDED_DEPS[@]}"
+    if [ -x "$(command -v apt-get)" ]
+    then
+        sudo apt-get install "${NEEDED_DEPS[@]}" -y
+    elif [ -x "$(command -v apk)" ]
+    then
+        sudo apk add --no-cache "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v dnf)" ]
+    then
+        sudo dnf install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v zypper)" ]
+    then
+        sudo zypper install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v pacman)" ]
+    then
+        sudo pacman -S install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v yum)" ]
+    then
+        sudo yum install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v emerge)" ]
+    then
+        sudo emerge -av "${NEEDED_DEPS[@]}"
+    else
+        echo "FAILED TO INSTALL! Package manager not found. You must manually install:" "${NEEDED_DEPS[@]}"
+        exit 1
+    fi
+fi
+
+# We need to source directly from the Github repo to be able to use the functions here
 # shellcheck disable=2034,2059,2164
 true
+SCRIPT_NAME="Install script"
+export SCRIPT_NAME
+# shellcheck source=lib.sh
+source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh)
+# see https://github.com/koalaman/shellcheck/wiki/Directive
+unset SCRIPT_NAME
 
-usern=$(whoami)
-path=$(pwd)
-echo "$path"
+##################################################################################################################
 
-ARCH=$(uname -m)
-
-
-# Identify OS
-if [ -f /etc/os-release ]; then
-    # freedesktop.org and systemd
-    . /etc/os-release
-    OS=$NAME
-    VER=$VERSION_ID
-    UPSTREAM_ID=${ID_LIKE,,}
-
-    # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
-    if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]; then
-        UPSTREAM_ID="$(echo "${ID_LIKE,,}" | sed s/\"//g | cut -d' ' -f1)"
-    fi
-
-elif type lsb_release >/dev/null 2>&1; then
-    # linuxbase.org
-    OS=$(lsb_release -si)
-    VER=$(lsb_release -sr)
-elif [ -f /etc/lsb-release ]; then
-    # For some versions of Debian/Ubuntu without lsb_release command
-    . /etc/lsb-release
-    OS=$DISTRIB_ID
-    VER=$DISTRIB_RELEASE
-elif [ -f /etc/debian_version ]; then
-    # Older Debian, Ubuntu, etc.
-    OS=Debian
-    VER=$(cat /etc/debian_version)
-elif [ -f /etc/SuSE-release ]; then
-    # Older SuSE, etc.
-    OS=SuSE
-    VER=$(cat /etc/SuSE-release)
-elif [ -f /etc/redhat-release ]; then
-    # Older Red Hat, CentOS, etc.
-    OS=RedHat
-    VER=$(cat /etc/redhat-release)
-else
-    # Fall back to uname, e.g. "Linux <version>", also works for BSD, etc.
-    OS=$(uname -s)
-    VER=$(uname -r)
-fi
-
+# Check if root
+root_check
 
 # Output debugging info if $DEBUG set
-if [ "$DEBUG" = "true" ]; then
-    echo "OS: $OS"
-    echo "VER: $VER"
-    echo "UPSTREAM_ID: $UPSTREAM_ID"
+if [ "$DEBUG" = "true" ]
+then
+    identify_os
+    print_text_in_color "$ICyan" "OS: $OS"
+    print_text_in_color "$ICyan" "VER: $VER"
+    print_text_in_color "$ICyan" "UPSTREAM_ID: $UPSTREAM_ID"
     exit 0
 fi
 
-# Setup prereqs for server
-# Common named prereqs
-PREREQ="tar"
-PREREQDEB="sqlite3"
-PREREQRPM="sqlite"
-PREREQARCH="sqlite"
+# Select user for update
+RUSTDESK_USER=$(whoami)
+    run_as_non_root_user() {
+        sudo -u "$RUSTDESK_USER" "$@";
+    }
 
-echo "Installing prerequisites"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
-    sudo apt-get update
-    sudo apt-get install -y ${PREREQ} ${PREREQDEB} # git
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] ; then
-# openSUSE 15.4 fails to run the relay service and hangs waiting for it
-# Needs more work before it can be enabled
-# || [ "${UPSTREAM_ID}" = "suse" ]
-    sudo yum update -y
-    sudo dnf install -y epel-release
-    sudo yum install -y ${PREREQ} ${PREREQRPM} # git
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]; then
-    sudo pacman -Syu
-    sudo pacman -S ${PREREQ} ${PREREQARCH}
-else
-    echo "Unsupported OS"
-    # Here you could ask the user for permission to try and install anyway
-    # If they say yes, then do the install
-    # If they say no, exit the script
-    exit 1
+# Install needed dependencies
+install_linux_package tar
+if ! install_linux_package sqlite3
+then
+   install_linux_package sqlite 
 fi
 
-if [[ $* == *--schedule* ]]; then
-    (
-        crontab -l 2>/dev/null
-        echo "0 0 * * * $path/backup.sh --auto"
-    ) | crontab -
+# Add the backup
+if [ -d /opt/rustdesk-server ]
+then
+    if [[ $* == *--schedule* ]]
+    then
+        (
+            crontab -l 2>/dev/null
+            echo "0 0 * * * $path/backup.sh --auto"
+        ) | crontab -
 
-    if [ ! -d /opt/rustdesk-server-backups ]; then
-        sudo mkdir /opt/rustdesk-server-backups
+        if [ ! -d /opt/rustdesk-server-backups ]
+        then
+            mkdir -p /opt/rustdesk-server-backups
+        fi
+
+        if [ ! -d /opt/rustdesk-server-backups/daily ]
+        then
+            mkdir -p /opt/rustdesk-server-backups/daily
+        fi
+
+        if [ ! -d /opt/rustdesk-server-backups/weekly ]
+        then
+            mkdir -p /opt/rustdesk-server-backups/weekly
+        fi
+
+        if [ ! -d /opt/rustdesk-server-backups/monthly ]
+        then
+            mkdir -p /opt/rustdesk-server-backups/monthly
+        fi
+        chown "${RUSTDESK_USER}":"${RUSTDESK_USER}" -R /opt/rustdesk-server-backups
+
+        printf >&2 "Backups setup to run at midnight and rotate."
+        exit 0
     fi
+elif [ -d $RUSTDESK_INSTALL_DIR ]
+    if [[ $* == *--schedule* ]]
+    then
+        (
+            crontab -l 2>/dev/null
+            echo "0 0 * * * $path/backup.sh --auto"
+        ) | crontab -
 
-    if [ ! -d /opt/rustdesk-server-backups/daily ]; then
-        sudo mkdir /opt/rustdesk-server-backups/daily
+        if [ ! -d $RUSTDESK_BACKUP_DIR ]
+        then
+            mkdir -p $RUSTDESK_BACKUP_DIR
+        fi
+
+        if [ ! -d $RUSTDESK_BACKUP_DIR/daily ]
+        then
+            mkdir $RUSTDESK_BACKUP_DIR/daily
+        fi
+
+        if [ ! -d $RUSTDESK_BACKUP_DIR/weekly ]
+        then
+            mkdir $RUSTDESK_BACKUP_DIR/weekly
+        fi
+
+        if [ ! -d $RUSTDESK_BACKUP_DIR/monthly ]
+        then
+            mkdir $RUSTDESK_BACKUP_DIR/monthly
+        fi
+        sudo chown "${RUSTDESK_USER}":"${RUSTDESK_USER}" -R /opt/rustdesk-server-backups
+
+        printf >&2 "Backups setup to run at midnight and rotate."
+        exit 0
     fi
-
-    if [ ! -d /opt/rustdesk-server-backups/weekly ]; then
-        sudo mkdir /opt/rustdesk-server-backups/weekly
-    fi
-
-    if [ ! -d /opt/rustdesk-server-backups/monthly ]; then
-        sudo mkdir /opt/rustdesk-server-backups/monthly
-    fi
-    sudo chown "${usern}":"${usern}" -R /opt/rustdesk-server-backups
-
-    printf >&2 "Backups setup to run at midnight and rotate."
-    exit 0
 fi
 
-if [ ! -d /opt/rustdesk-server-backups ]; then
-    sudo mkdir /opt/rustdesk-server-backups
-    sudo chown "${usern}":"${usern}" /opt/rustdesk-server-backups
-fi
+
+################ didn't touch anything below this
 
 dt_now=$(date '+%Y_%m_%d__%H_%M_%S')
 tmp_dir=$(mktemp -d -t rustdesk-XXXXXXXXXXXXXXXXXXXXX)
 sysd="/etc/systemd/system"
 
-cp -rf /var/lib/rustdesk-server/ "${tmp_dir}"/
-sqlite3 /var/lib/rustdesk-server/db.sqlite3 .dump > "${tmp_dir}"/db_backup_file.sql
+run_as_non_root_user cp -rf /var/lib/rustdesk-server/ "${tmp_dir}"/
+run_as_non_root_user sqlite3 /var/lib/rustdesk-server/db.sqlite3 .dump > "${tmp_dir}"/db_backup_file.sql
 
 if [[ $* == *--auto* ]]; then
 
@@ -133,12 +164,12 @@ if [[ $* == *--auto* ]]; then
     week_day=$(date +"%u")
 
     if [ "$month_day" -eq 10 ]; then
-        tar -cf /opt/rustdesk-server-backups/monthly/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
+        run_as_non_root_user  tar -cf /opt/rustdesk-server-backups/monthly/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
     else
         if [ "$week_day" -eq 5 ]; then
-            tar -cf /opt/rustdesk-server-backups/weekly/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
+            run_as_non_root_user  tar -cf /opt/rustdesk-server-backups/weekly/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
         else
-            tar -cf /opt/rustdesk-server-backups/daily/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
+            run_as_non_root_user tar -cf /opt/rustdesk-server-backups/daily/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
         fi
     fi
 
@@ -147,11 +178,11 @@ if [[ $* == *--auto* ]]; then
     find /opt/rustdesk-server-backups/daily/ -type f -mtime +14 -name '*.tar' -execdir rm -- '{}' \;
     find /opt/rustdesk-server-backups/weekly/ -type f -mtime +60 -name '*.tar' -execdir rm -- '{}' \;
     find /opt/rustdesk-server-backups/monthly/ -type f -mtime +380 -name '*.tar' -execdir rm -- '{}' \;
-    echo -ne "Backup Completed"
+    msg_box "Backup Completed"
     exit
 
 else
-    tar -cf /opt/rustdesk-server-backups/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
+    run_as_non_root_user tar -cf /opt/rustdesk-server-backups/rustdesk-backup-"${dt_now}".tar -C "${tmp_dir}" .
     rm -rf "${tmp_dir}"
-    echo -ne "Backup saved to /opt/rustdesk-server-backups/rustdesk-backup-${dt_now}.tar"
+    msg_box "Backup saved to /opt/rustdesk-server-backups/rustdesk-backup-${dt_now}.tar"
 fi
