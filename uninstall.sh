@@ -77,37 +77,37 @@ fi
 
 # Uninstall Rustdesk Menu
 choice=$(whiptail --title "$TITLE" --checklist \
-"What do you want to uninstall?
+"Please choose what to uninstall:\n\n
 $CHECKLIST_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
-"nginxconf" "(Removes Rustdesk Nginx config)" OFF \
-"nginxall" "(Removes *everything* releated to Nginx)" ON \
-"wget" "(Removes wget linux package)" ON \
-"unzip" "(Removes unzip linux package)" ON \
-"whiptail" "(Removes whiptail linux package)" ON \
-"dnsutils" "(Removes dnsutils linux package)" ON \
-"bind-utils" "(Removes bind-utils linux package)" ON \
-"bind" "(Removes bind linux package)" ON \
-"UFW" "(Removes UFW linux package plus rules)" ON \
-"Rustdesk LOGs" "(Removes RustDesk log dir)" ON \
-"Rustdesk Server" "(Removes Rustdesk server + services)" ON \
-"curl" "(Removes curl:// linux package)" OFF \
-"Certbot" "(Removes Certbot package plus Let's Encrypt)" "$CERTBOT_SWITCH" 3>&1 1>&2 2>&3)
+"Certbot" "(Everything related to Let's Encrypt)" "$CERTBOT_SWITCH" \
+"RustDesk-LOGs" "(RustDesk log dir)" ON \
+"RustDesk-SERVER" "(RustDesk server + RustDesk services)" ON \
+"NGINX-RustDesk" "(RustDesk Nginx config)" OFF \
+"NGINX" "(Linux package + ALL configs)" ON \
+"UFW" "(Linux package + RustDesk rules)" ON \
+"curl" "(Linux package)" OFF \
+"wget" "(Linux package)" ON \
+"unzip" "(Linux package)" ON \
+"whiptail" "(Linux package)" ON \
+"dnsutils" "(Linux package)" ON \
+"bind-utils" "(Linux package)" ON \
+"bind" "(Linux package)" ON  3>&1 1>&2 2>&3)
 
 case "$choice" in
-    *"nginxconf"*)
+    *"NGINX-RustDesk"*)
         REMOVE_NGINX_CONF="yes"
     ;;&
-    *"nginxall"*)
+    *"NGINX"*)
         REMOVE_NGINX_ALL="yes"
     ;;&
     *"wget"*)
         REMOVE_WGET="yes"
     ;;&
-    *"unzip"*)
-        REMOVE_UNZIP="yes"
-    ;;&
     *"whiptail"*)
         REMOVE_WHIPTAIL="yes"
+    ;;&
+    *"unzip"*)
+        REMOVE_UNZIP="yes"
     ;;&
     *"dnsutils"*)
         REMOVE_DNSUTILS="yes"
@@ -121,10 +121,10 @@ case "$choice" in
     *"UFW"*)
         REMOVE_UFW="yes"
     ;;&
-    *"Rustdesk LOGs"*)
+    *"RustDesk-LOGs"*)
         REMOVE_RUSTDESK_LOG="yes"
     ;;&
-    *"Rustdesk SERVER"*)
+    *"RustDesk-SERVER"*)
         REMOVE_RUSTDESK_SERVER="yes"
     ;;&
     *"curl"*)
