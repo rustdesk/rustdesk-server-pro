@@ -159,7 +159,7 @@ install_linux_package() {
     # osInfo[/etc/SuSE-release]=zypp
     # osInfo[/etc/debian_version]=apt-get
     # osInfo[/etc/alpine-release]=apk
-    print_text_in_color "$IGreen" Installing "${1}..."
+    print_text_in_color "$IGreen" "Installing ${1}..."
     if [ -x "$(command -v apt-get)" ]
     then
         sudo apt-get install "${1}" -y
