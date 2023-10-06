@@ -416,10 +416,6 @@ server {
 NGINX_RUSTDESK_CONF
         fi
 
-        # Remove the default Nginx configs
-        rm -f /etc/nginx/sites-available/default
-        rm -f /etc/nginx/sites-enabled/default
-
         # Enable the Nginx config file
         if [ ! -f /etc/nginx/sites-enabled/rustdesk.conf ]
         then
