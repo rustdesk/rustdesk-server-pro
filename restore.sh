@@ -1,101 +1,84 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
+##################################################################################################################
+
+# Install curl and whiptail if needed
+if [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v whiptail)" ]
+then
+    # We need curl to fetch the lib
+    # There are the package managers for different OS:
+    # osInfo[/etc/redhat-release]=yum
+    # osInfo[/etc/arch-release]=pacman
+    # osInfo[/etc/gentoo-release]=emerge
+    # osInfo[/etc/SuSE-release]=zypp
+    # osInfo[/etc/debian_version]=apt-get
+    # osInfo[/etc/alpine-release]=apk
+    NEEDED_DEPS=(curl whiptail)
+    echo "Installing these packages:" "${NEEDED_DEPS[@]}"
+    if [ -x "$(command -v apt-get)" ]
+    then
+        sudo apt-get install "${NEEDED_DEPS[@]}" -y
+    elif [ -x "$(command -v apk)" ]
+    then
+        sudo apk add --no-cache "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v dnf)" ]
+    then
+        sudo dnf install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v zypper)" ]
+    then
+        sudo zypper install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v pacman)" ]
+    then
+        sudo pacman -S install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v yum)" ]
+    then
+        sudo yum install "${NEEDED_DEPS[@]}"
+    elif [ -x "$(command -v emerge)" ]
+    then
+        sudo emerge -av "${NEEDED_DEPS[@]}"
+    else
+        echo "FAILED TO INSTALL! Package manager not found. You must manually install:" "${NEEDED_DEPS[@]}"
+        exit 1
+    fi
+fi
+
+# We need to source directly from the Github repo to be able to use the functions here
 # shellcheck disable=2034,2059,2164
 true
+SCRIPT_NAME="Install script"
+export SCRIPT_NAME
+# shellcheck source=lib.sh
+source <(curl -sL https://raw.githubusercontent.com/rustdesk/rustdesk-server-pro/main/lib.sh)
+# see https://github.com/koalaman/shellcheck/wiki/Directive
+unset SCRIPT_NAME
 
-usern=$(whoami)
-path=$(pwd)
-echo "$path"
+##################################################################################################################
 
-# Check for /var/lib/rustdesk-server/
-if [ -d "/var/lib/rustdesk-server" ]; then
-    echo "Directory already exists so not needing to restore"
-    exit
-fi
-
-ARCH=$(uname -m)
-
-
-# Identify OS
-if [ -f /etc/os-release ]; then
-    # freedesktop.org and systemd
-    source /etc/os-release
-    OS=$NAME
-    VER=$VERSION_ID
-    UPSTREAM_ID=${ID_LIKE,,}
-
-    # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
-    if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]; then
-        UPSTREAM_ID="$(echo "${ID_LIKE,,}" | sed s/\"//g | cut -d' ' -f1)"
-    fi
-
-elif type lsb_release >/dev/null 2>&1; then
-    # linuxbase.org
-    OS=$(lsb_release -si)
-    VER=$(lsb_release -sr)
-elif [ -f /etc/lsb-release ]; then
-    # For some versions of Debian/Ubuntu without lsb_release command
-    source /etc/lsb-release
-    OS=$DISTRIB_ID
-    VER=$DISTRIB_RELEASE
-elif [ -f /etc/debian_version ]; then
-    # Older Debian, Ubuntu, etc.
-    OS=Debian
-    VER=$(cat /etc/debian_version)
-elif [ -f /etc/SuSE-release ]; then
-    # Older SuSE, etc.
-    OS=SuSE
-    VER=$(cat /etc/SuSE-release)
-elif [ -f /etc/redhat-release ]; then
-    # Older Red Hat, CentOS, etc.
-    OS=RedHat
-    VER=$(cat /etc/redhat-release)
-else
-    # Fall back to uname, e.g. "Linux <version>", also works for BSD, etc.
-    OS=$(uname -s)
-    VER=$(uname -r)
-fi
-
+# Check if root
+root_check
 
 # Output debugging info if $DEBUG set
-if [ "$DEBUG" = "true" ]; then
-    echo "OS: $OS"
-    echo "VER: $VER"
-    echo "UPSTREAM_ID: $UPSTREAM_ID"
+if [ "$DEBUG" = "true" ]
+then
+    identify_os
+    print_text_in_color "$ICyan" "OS: $OS"
+    print_text_in_color "$ICyan" "VER: $VER"
+    print_text_in_color "$ICyan" "UPSTREAM_ID: $UPSTREAM_ID"
     exit 0
 fi
 
-# Setup prereqs for server
-# Common named prereqs
-PREREQ="curl wget unzip tar"
-PREREQDEB="dnsutils ufw sqlite3"
-PREREQRPM="bind-utils sqlite"
-PREREQARCH="bind sqlite"
+PATH=$(pwd)
+echo "$path"
 
-echo "Installing prerequisites"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
-    sudo apt-get update
-    sudo apt-get install -y "${PREREQ}" "${PREREQDEB}" # git
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "${OS}" = "Almalinux" ] || [ "${UPSTREAM_ID}" = "Rocky*" ] ; then
-# openSUSE 15.4 fails to run the relay service and hangs waiting for it
-# Needs more work before it can be enabled
-# || [ "${UPSTREAM_ID}" = "suse" ]
-    sudo yum update -y
-    sudo dnf install -y epel-release
-    sudo yum install -y "${PREREQ}" "${PREREQRPM}" # git
-elif [ "${ID}" = "arch" ] || [ "${UPSTREAM_ID}" = "arch" ]; then
-    sudo pacman -Syu
-    sudo pacman -S "${PREREQ}" "${PREREQARCH}"
-else
-    echo "Unsupported OS"
-    # Here you could ask the user for permission to try and install anyway
-    # If they say yes, then do the install
-    # If they say no, exit the script
-    exit 1
+# Check for /var/lib/rustdesk-server/
+if [ -d "$RUSTDESK_INSTALL_DIR" ]
+then
+    print_text_in_color "$ICyan" "$RUSTDESK_INSTALL_DIR already exists so not needing to restore"
+    exit
 fi
 
+# But we never downloaded the tar? Why do we expect the tar to be in path?
 tmp_dir=$(mktemp -d -t)
-
 tar -xf "$path"/*.tar -C "$tmp_dir"
 
 cp -rf "${tmp_dir}"/rustdesk-server/ /var/lib/
