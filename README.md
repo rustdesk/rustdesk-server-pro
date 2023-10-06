@@ -1,5 +1,5 @@
 # RustDesk Server PRO
-Here we have a small collection of some scripts for RustDesk Server Pro.
+Here we have a small collection of [some scripts](https://rustdesk.com/docs/en/self-host/rustdesk-server-pro/installscript/) for RustDesk Server Pro.
 
 > If you are looking for the open source version please go to [RustDesk Server](https://github.com/rustdesk/rustdesk-server)
 
