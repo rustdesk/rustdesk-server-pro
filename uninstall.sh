@@ -79,25 +79,25 @@ fi
 choice=$(whiptail --title "$TITLE" --checklist \
 "Please choose what to uninstall:\n\n
 $CHECKLIST_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
-"Certbot" "(Everything related to Let's Encrypt)" "$CERTBOT_SWITCH" \
-"RustDesk-LOGs" "(RustDesk log dir)" ON \
-"RustDesk-SERVER" "(RustDesk server + RustDesk services)" ON \
-"NGINX-RustDesk" "(RustDesk Nginx config)" OFF \
-"NGINX" "(Linux package + ALL configs)" ON \
-"UFW" "(Linux package + RustDesk rules)" ON \
+"certbot" "(Everything related to Let's Encrypt)" "$CERTBOT_SWITCH" \
+"rustdesk-logs" "(RustDesk LOG dir)" ON \
+"rustdesk-server" "(RustDesk SERVER + RustDesk services)" ON \
+"nginx-rustdesk" "(RustDesk Nginx config)" OFF \
+"nginx" "(Linux webserver package + ALL configs)" ON \
+"ufw" "(Linux firewall package + RustDesk rules)" ON \
+"whiptail" "(Linux menu package)" ON \
 "curl" "(Linux package)" OFF \
-"wget" "(Linux package)" ON \
-"unzip" "(Linux package)" ON \
-"whiptail" "(Linux package)" ON \
+"wget" "(Linux package)" OFF \
+"unzip" "(Linux package)" OFF \
 "dnsutils" "(Linux package)" ON \
 "bind-utils" "(Linux package)" ON \
 "bind" "(Linux package)" ON  3>&1 1>&2 2>&3)
 
 case "$choice" in
-    *"NGINX-RustDesk"*)
+    *"nginx-rustdesk"*)
         REMOVE_NGINX_CONF="yes"
     ;;&
-    *"NGINX"*)
+    *"nginx"*)
         REMOVE_NGINX_ALL="yes"
     ;;&
     *"wget"*)
@@ -118,19 +118,19 @@ case "$choice" in
     *"bind"*)
         REMOVE_BIND="yes"
     ;;&
-    *"UFW"*)
+    *"ufw"*)
         REMOVE_UFW="yes"
     ;;&
-    *"RustDesk-LOGs"*)
+    *"rustdesk-logs"*)
         REMOVE_RUSTDESK_LOG="yes"
     ;;&
-    *"RustDesk-SERVER"*)
+    *"rustdesk-server"*)
         REMOVE_RUSTDESK_SERVER="yes"
     ;;&
     *"curl"*)
         REMOVE_CURL="yes"
     ;;&
-    *"Certbot"*)
+    *"certbot"*)
         REMOVE_CERTBOT="yes"
     ;;&
     *)
