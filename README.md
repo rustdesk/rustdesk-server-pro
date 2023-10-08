@@ -35,7 +35,7 @@ fi
 Same applies for functions:
 
 ```
-examplefuntion() [
+examplefuntion() {
     if something
     then
         do something
