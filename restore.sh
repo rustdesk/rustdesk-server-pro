@@ -272,9 +272,18 @@ server {
 }
 EOF
 )"
-echo "${rustdesknginx}" | sudo tee /etc/nginx/sites-available/rustdesk.conf >/dev/null
 
-sudo ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rustdesk.conf
+if [ -d "/etc/nginx/sites-available" ] && [ -d "/etc/nginx/sites-enabled" ]
+then
+    echo "${rustdesknginx}" | sudo tee /etc/nginx/sites-available/rustdesk.conf >/dev/null
+    sudo ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rustdesk.conf
+elif [ -d "/etc/nginx/conf.d" ]
+then
+    echo "${rustdesknginx}" | sudo tee /etc/nginx/conf.d/rustdesk.conf >/dev/null
+else
+    msg_box "Couldn't find the Nginx config directory. Please check your system!"
+    exit 1
+fi
 
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
