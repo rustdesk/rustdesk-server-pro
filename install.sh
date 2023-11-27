@@ -401,10 +401,21 @@ Do you want to install Certbot with snap? (recommended)"
         fi
 
         # Add Nginx config
-        if [ ! -f "/etc/nginx/sites-available/rustdesk.conf" ]
+        if [ -d "/etc/nginx/sites-available" ] && [ -d "/etc/nginx/sites-enabled" ]
         then
-            touch "/etc/nginx/sites-available/rustdesk.conf"
-            cat << NGINX_RUSTDESK_CONF > "/etc/nginx/sites-available/rustdesk.conf"
+            SITES_CONF_DIR="sites-available"
+        elif [ -d "/etc/nginx/conf.d" ]
+        then
+            SITES_CONF_DIR="conf.d"
+        else
+            msg_box "Couldn't find the Nginx config directory. Please check your system!"
+            exit 1
+        fi
+
+        if [ ! -f "/etc/nginx/$SITES_CONF_DIR/rustdesk.conf" ]
+        then
+            touch "/etc/nginx/$SITES_CONF_DIR/rustdesk.conf"
+            cat << NGINX_RUSTDESK_CONF > "/etc/nginx/$SITES_CONF_DIR/rustdesk.conf"
 server {
   server_name ${RUSTDESK_DOMAIN};
       location / {
@@ -417,7 +428,7 @@ NGINX_RUSTDESK_CONF
         fi
 
         # Enable the Nginx config file
-        if [ ! -f /etc/nginx/sites-enabled/rustdesk.conf ]
+        if [ "$SITES_CONF_DIR" = "sites-available" ] && [ ! -f /etc/nginx/sites-enabled/rustdesk.conf ]
         then
             ln -s /etc/nginx/sites-available/rustdesk.conf /etc/nginx/sites-enabled/rustdesk.conf
         fi
