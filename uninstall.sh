@@ -153,7 +153,7 @@ then
     ufw delete allow 21115:21119/tcp
     # ufw delete 22/tcp # If connected to a remote VPS, this deletion will make the connection go down
     ufw delete allow 21116/udp
-    if [ -f "/etc/nginx/sites-available/rustdesk.conf" ]
+    if [ -f "/etc/nginx/sites-available/rustdesk.conf" ] || [ -f "/etc/nginx/conf.d/rustdesk.conf" ]
     then
         ufw delete allow 80/tcp
         ufw delete allow 443/tcp
@@ -212,6 +212,7 @@ if [ -n "$REMOVE_NGINX_CONF" ]
 then
     rm -f "/etc/nginx/sites-available/rustdesk.conf"
     rm -f "/etc/nginx/sites-enabled/rustdesk.conf"
+    rm -f "/etc/nginx/conf.d/rustdesk.conf"
     service nginx restart
 elif [ -n "$REMOVE_NGINX_ALL" ]
 then
