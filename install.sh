@@ -189,14 +189,17 @@ This might be temporary, so please try to run the installation script again."
         fi
         mv "${ACTUAL_TAR_NAME}"/hbbr /usr/bin/
         mv "${ACTUAL_TAR_NAME}"/hbbs /usr/bin/
+        mv "${ACTUAL_TAR_NAME}"/rustdesk-utils /usr/bin/
         rm -rf "$RUSTDESK_INSTALL_DIR"/"${ACTUAL_TAR_NAME:?}"
         rm -rf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
         chmod +x /usr/bin/hbbs
         chmod +x /usr/bin/hbbr
+        chmod +x /usr/bin/rustdesk-utils
         if [ -n "$RUSTDESK_USER" ]
         then
             chown "$RUSTDESK_USER":"$RUSTDESK_USER" -R /usr/bin/hbbr
-            chown "$RUSTDESK_USER":"$RUSTDESK_USER" -R /usr/bin/hbbr
+            chown "$RUSTDESK_USER":"$RUSTDESK_USER" -R /usr/bin/hbbs
+            chown "$RUSTDESK_USER":"$RUSTDESK_USER" -R /usr/bin/rustdesk-utils
         fi
     else
         print_text_in_color "$IGreen" "Rustdesk server already installed."

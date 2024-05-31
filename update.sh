@@ -89,6 +89,7 @@ tar -xf rustdesk-server-linux-amd64.tar.gz
 mv amd64/static /var/lib/rustdesk-server/
 sudo mv amd64/hbbr /usr/bin/
 sudo mv amd64/hbbs /usr/bin/
+sudo mv amd64/rustdesk-utils /usr/bin/
 rm -rf amd64/
 rm -rf rustdesk-server-linux-amd64.tar.gz
 elif [ "${ARCH}" = "armv7l" ] ; then
@@ -97,6 +98,7 @@ tar -xf rustdesk-server-linux-armv7.tar.gz
 mv armv7/static /var/lib/rustdesk-server/
 sudo mv armv7/hbbr /usr/bin/
 sudo mv armv7/hbbs /usr/bin/
+sudo mv armv7/rustdesk-utils /usr/bin/
 rm -rf armv7/
 rm -rf rustdesk-server-linux-armv7.tar.gz
 elif [ "${ARCH}" = "aarch64" ] ; then
@@ -105,12 +107,14 @@ tar -xf rustdesk-server-linux-arm64v8.tar.gz
 mv arm64v8/static /var/lib/rustdesk-server/
 sudo mv arm64v8/hbbr /usr/bin/
 sudo mv arm64v8/hbbs /usr/bin/
+sudo mv arm64v8/rustdesk-utils /usr/bin/
 rm -rf arm64v8/
 rm -rf rustdesk-server-linux-arm64v8.tar.gz
 fi
 
 sudo chmod +x /usr/bin/hbbs
 sudo chmod +x /usr/bin/hbbr
+sudo chmod +x /usr/bin/rustdesk-utils
 
 sudo systemctl start rustdesk-hbbs.service
 sudo systemctl start rustdesk-hbbr.service
