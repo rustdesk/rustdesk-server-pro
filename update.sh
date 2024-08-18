@@ -93,11 +93,11 @@ echo "Upgrading RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
 wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-amd64${TLS}.tar.gz
 tar -xf rustdesk-server-linux-amd64${TLS}.tar.gz
-mv amd64/static /var/lib/rustdesk-server/
-sudo mv amd64/hbbr /usr/bin/
-sudo mv amd64/hbbs /usr/bin/
-sudo mv amd64/rustdesk-utils /usr/bin/
-rm -rf amd64/
+mv amd64${TLS}/static /var/lib/rustdesk-server/
+sudo mv amd64${TLS}/hbbr /usr/bin/
+sudo mv amd64${TLS}/hbbs /usr/bin/
+sudo mv amd64${TLS}/rustdesk-utils /usr/bin/
+rm -rf amd64${TLS}/
 rm -rf rustdesk-server-linux-amd64${TLS}.tar.gz
 elif [ "${ARCH}" = "armv7l" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.tar.gz"
@@ -111,11 +111,11 @@ rm -rf rustdesk-server-linux-armv7.tar.gz
 elif [ "${ARCH}" = "aarch64" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8${TLS}.tar.gz"
 tar -xf rustdesk-server-linux-arm64v8${TLS}.tar.gz
-mv arm64v8/static /var/lib/rustdesk-server/
-sudo mv arm64v8/hbbr /usr/bin/
-sudo mv arm64v8/hbbs /usr/bin/
-sudo mv arm64v8/rustdesk-utils /usr/bin/
-rm -rf arm64v8/
+mv arm64v8${TLS}/static /var/lib/rustdesk-server/
+sudo mv arm64v8${TLS}/hbbr /usr/bin/
+sudo mv arm64v8${TLS}/hbbs /usr/bin/
+sudo mv arm64v8${TLS}/rustdesk-utils /usr/bin/
+rm -rf arm64v8${TLS}/
 rm -rf rustdesk-server-linux-arm64v8${TLS}.tar.gz
 fi
 
