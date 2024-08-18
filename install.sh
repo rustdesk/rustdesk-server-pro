@@ -12,6 +12,13 @@
 
 ##################################################################################################################
 
+TLS=""
+if command -v ldconfig &> /dev/null; then
+    if ldconfig -p | grep -q "libssl.so.3"; then
+        TLS="-nativetls"
+    fi
+fi
+
 # Install curl and whiptail if needed
 if [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v whiptail)" ]
 then
@@ -167,7 +174,7 @@ Please report this to: https://github.com/rustdesk/rustdesk-server-pro/issues"
             ACTUAL_TAR_NAME=arm64v8
         fi
         # Download
-        if ! curl -fSLO --retry 3 https://github.com/rustdesk/rustdesk-server-pro/releases/download/"${RDLATEST}"/rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
+        if ! curl -fSLO --retry 3 https://github.com/rustdesk/rustdesk-server-pro/releases/download/"${RDLATEST}"/rustdesk-server-linux-"${ACTUAL_TAR_NAME}""${TLS}".tar.gz
         then
             msg_box "Sorry, the installation package failed to download.
 This might be temporary, so please try to run the installation script again."
