@@ -173,15 +173,16 @@ Please report this to: https://github.com/rustdesk/rustdesk-server-pro/issues"
         then
             ACTUAL_TAR_NAME=arm64v8
         fi
+        ACTUAL_TAR_NAME=${ACTUAL_TAR_NAME}${TLS}
         # Download
-        if ! curl -fSLO --retry 3 https://github.com/rustdesk/rustdesk-server-pro/releases/download/"${RDLATEST}"/rustdesk-server-linux-"${ACTUAL_TAR_NAME}""${TLS}".tar.gz
+        if ! curl -fSLO --retry 3 https://github.com/rustdesk/rustdesk-server-pro/releases/download/"${RDLATEST}"/rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
         then
             msg_box "Sorry, the installation package failed to download.
 This might be temporary, so please try to run the installation script again."
             exit 1
         fi
         # Extract, move in place, and make it executable
-        tar -xf rustdesk-server-linux-"${ACTUAL_TAR_NAME}""${TLS}".tar.gz
+        tar -xf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
         # Set permissions
         if [ -n "$RUSTDESK_USER" ]
         then
@@ -198,7 +199,7 @@ This might be temporary, so please try to run the installation script again."
         mv "${ACTUAL_TAR_NAME}"/hbbs /usr/bin/
         mv "${ACTUAL_TAR_NAME}"/rustdesk-utils /usr/bin/
         rm -rf "$RUSTDESK_INSTALL_DIR"/"${ACTUAL_TAR_NAME:?}"
-        rm -rf rustdesk-server-linux-"${ACTUAL_TAR_NAME}""${TLS}".tar.gz
+        rm -rf rustdesk-server-linux-"${ACTUAL_TAR_NAME}".tar.gz
         chmod +x /usr/bin/hbbs
         chmod +x /usr/bin/hbbr
         chmod +x /usr/bin/rustdesk-utils
