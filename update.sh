@@ -3,6 +3,13 @@
 # shellcheck disable=2034,2059,2164
 true
 
+TLS=""
+if command -v ldconfig &> /dev/null; then
+    if ldconfig -p | grep -q "libssl.so.3"; then
+        TLS="-nativetls"
+    fi
+fi
+
 # Get username
 usern=$(whoami) # not used btw ... yet
 
@@ -84,14 +91,14 @@ rm -rf static/
 
 echo "Upgrading RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
-wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-amd64.tar.gz
-tar -xf rustdesk-server-linux-amd64.tar.gz
+wget https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-amd64${TLS}.tar.gz
+tar -xf rustdesk-server-linux-amd64${TLS}.tar.gz
 mv amd64/static /var/lib/rustdesk-server/
 sudo mv amd64/hbbr /usr/bin/
 sudo mv amd64/hbbs /usr/bin/
 sudo mv amd64/rustdesk-utils /usr/bin/
 rm -rf amd64/
-rm -rf rustdesk-server-linux-amd64.tar.gz
+rm -rf rustdesk-server-linux-amd64${TLS}.tar.gz
 elif [ "${ARCH}" = "armv7l" ] ; then
 wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-armv7.tar.gz"
 tar -xf rustdesk-server-linux-armv7.tar.gz
@@ -102,14 +109,14 @@ sudo mv armv7/rustdesk-utils /usr/bin/
 rm -rf armv7/
 rm -rf rustdesk-server-linux-armv7.tar.gz
 elif [ "${ARCH}" = "aarch64" ] ; then
-wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8.tar.gz"
-tar -xf rustdesk-server-linux-arm64v8.tar.gz
+wget "https://github.com/rustdesk/rustdesk-server-pro/releases/download/${RDLATEST}/rustdesk-server-linux-arm64v8${TLS}.tar.gz"
+tar -xf rustdesk-server-linux-arm64v8${TLS}.tar.gz
 mv arm64v8/static /var/lib/rustdesk-server/
 sudo mv arm64v8/hbbr /usr/bin/
 sudo mv arm64v8/hbbs /usr/bin/
 sudo mv arm64v8/rustdesk-utils /usr/bin/
 rm -rf arm64v8/
-rm -rf rustdesk-server-linux-arm64v8.tar.gz
+rm -rf rustdesk-server-linux-arm64v8${TLS}.tar.gz
 fi
 
 sudo chmod +x /usr/bin/hbbs
