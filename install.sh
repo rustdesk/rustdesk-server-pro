@@ -370,7 +370,7 @@ case "$choice" in
         while :
         do
             RUSTDESK_DOMAIN=$(input_box_flow "Please enter your domain, e.g. rustdesk.example.com")
-            DIG=$(dig +short "${RUSTDESK_DOMAIN}" @resolver1.opendns.com)
+            DIG=$(dig +short "${RUSTDESK_DOMAIN}" @8.8.8.8)
             if ! [[ "$RUSTDESK_DOMAIN" =~ ^[a-zA-Z0-9]+([a-zA-Z0-9.-]*[a-zA-Z0-9]+)?$ ]]
             then
                 msg_box "$RUSTDESK_DOMAIN is an invalid domain/DNS address! Please try again."
@@ -380,7 +380,7 @@ case "$choice" in
         done
 
         # Check if DNS are forwarded correctly
-        if dig +short "$RUSTDESK_DOMAIN" @resolver1.opendns.com | grep -q "$WANIP4"
+        if dig +short "$RUSTDESK_DOMAIN" @8.8.8.8 | grep -q "$WANIP4"
         then
             print_text_in_color "$IGreen" "DNS seems correct when checking with dig!"
         else
