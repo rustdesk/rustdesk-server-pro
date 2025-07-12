@@ -358,11 +358,11 @@ done
 choice=$(whiptail --title "Rustdesk installation script" --menu \
 "Choose your preferred option, IP or DNS/Domain:
 
-DNS = Setup Rustdesk with TLS and your own domain
 IP  = You don't have a domain, only plain IP
+DNS = Setup Rustdesk with TLS and your own domain
 $MENU_GUIDE\n\n$RUN_LATER_GUIDE" "$WT_HEIGHT" "$WT_WIDTH" 4 \
-"DNS" "(e.g. rustdesk.example.com)" \
-"IP" "($WANIP4)" 3>&1 1>&2 2>&3)
+"IP" "($WANIP4)" \
+"DNS" "(e.g. rustdesk.example.com)" 3>&1 1>&2 2>&3)
 
 case "$choice" in
     "DNS")
