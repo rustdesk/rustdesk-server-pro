@@ -451,7 +451,7 @@ NGINX_RUSTDESK_CONF
         ufw --force reload
 
         # Generate the certifictae
-        if ! certbot --nginx --cert-name "${RUSTDESK_DOMAIN}" --key-type ecdsa --renew-by-default --no-eff-email --agree-tos --server https://acme-v02.api.letsencrypt.org/directory -d "${RUSTDESK_DOMAIN}"
+        if ! certbot --nginx --cert-name "${RUSTDESK_DOMAIN}" --key-type ecdsa --renew-by-default --no-eff-email  --register-unsafely-without-email --agree-tos --server https://acme-v02.api.letsencrypt.org/directory -d "${RUSTDESK_DOMAIN}"
         then
             msg_box "Sorry, the TLS certificate for $RUSTDESK_DOMAIN failed to generate!
 Please check that port 80/443 are correctly port forwarded, and that the DNS record points to this servers IP.
