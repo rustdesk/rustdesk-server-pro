@@ -89,7 +89,7 @@ else
 fi
 
 cd /var/lib/rustdesk-server/
-rm -rf static/
+sudo rm -rf static/
 
 echo "Upgrading RustDesk Server"
 if [ "${ARCH}" = "x86_64" ] ; then
